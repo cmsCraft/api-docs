@@ -25,7 +25,8 @@ everything an order needs: the seller's details, a delivery method (not needed w
 payment method, the terms and the withdrawal form, and the project's main domain. Until then:
 
 - `publicShop` answers normally, with `ready: false`.
-- `createShopOrder` fails with `SHOP_NOT_READY`.
+- `createShopOrder` fails with `SHOP_NOT_READY`. This can also mean the platform itself is not yet configured to take
+  orders; if a shop stays not ready after the owner has finished the setup, [contact us](mailto:support@cms-craft.com).
 
 Check `publicShop { ready }` before you show a checkout.
 
@@ -61,8 +62,9 @@ query Shop {
   codes), `Packeta` (delivery to a pickup point chosen in the Packeta widget) or `Pickup` (collected from the seller).
   `freeAboveMinor`, when set, is the order subtotal from which shipping is free.
 - `paymentMethods` are the methods you can send as `paymentMethod`. See [Payment](#payment).
-- `packetaApiKey` is the public key of the Packeta point-picker widget; it is `null` when the shop does not use
-  Packeta.
+- `packetaApiKey` is the public key of the Packeta point-picker widget, as configured for the shop, or `null`. It can
+  be set even when the shop has no active Packeta delivery method, so decide from `deliveryMethods` whether to show the
+  widget.
 - `termsUrl`, `complaintsUrl` and `withdrawalFormUrl` link to the shop's documents. Show the terms before the visitor
   accepts them.
 - `unpaidCancelDays` is how many days an unpaid order is kept before it is cancelled automatically.
@@ -95,7 +97,7 @@ query ShopProducts {
   return a number here; checkout ignores it. On a VAT-payer shop a product without a rate cannot be bought
   (`shopPriceMinor` is `null`, and an order with it fails with `NOT_BUYABLE`). Prices include VAT.
 - `inStock` is `false` when nothing is left to sell. For a product with options it is `true` while any option has
-  stock; a product that needs no shipping (a service, a download) is always in stock. `sellQuantity` of the product is
+  stock; a product without options that needs no shipping (a service, a download) is always in stock. Options decide first: a product with options is in stock only while an option has stock, whether or not it ships. `sellQuantity` of the product is
   public, but the stock of each option is never shown: use `inStock` on the option.
 - `requiresShipping` tells you whether the cart needs a delivery method.
 - `options` are the choices of a product (a size, a colour), each with its own `inStock`; `optionListName` is the
@@ -252,6 +254,17 @@ Returns `true`. A request for an order that already has one is accepted again wi
 unknown order, or an e-mail that does not match the order number, is `NOT_FOUND`. `message` is optional (up to 2,000
 characters). Like the order page, withdrawal keeps working if the shop is later switched off. Whether the withdrawal is
 accepted and the money returned is for the shop owner to handle.
+
+### The withdrawal period
+
+The consumer's period is **14 calendar days**, counted from receipt of the goods (`deliveredAt`, set on delivery or on
+pickup), or from the order date (`createdAt`) for a services-only order, one with no delivery. If the last day falls on
+a Saturday, a Sunday or a Czech public holiday, the period ends on the next working day. It ends at 23:59:59 Prague
+time on that day.
+
+The API does **not** enforce the period: a request after the deadline is still accepted and recorded, and the shop owner
+decides what to do with it. The order e-mails show the deadline. `ShopOrder` has no deadline field, so a site that wants
+to show it computes it from `deliveredAt` (or `createdAt` when the order has no `delivery`) by the rule above.
 
 ## Limits
 
