@@ -17,8 +17,8 @@
 
 - One catch-all route (`app/[[...mdxPath]]/page.jsx`) turns every `content/**/*.mdx` / `.md` file into a page.
   Sidebar labels and order come from `content/_meta.js` and `content/guides/_meta.js`.
-- `schema/schema.public.gql` is the single schema source. It is copied from main-craft's published public
-  schema when the API changes (a manual copy for now).
+- `schema/schema.public.gql` is the single schema source. It is copied from main-craft's public schema;
+  main-craft CI opens a `bot/schema-sync` PR when it changes (never edit it by hand except to sync).
 - `scripts/gen-reference.mjs` exits 1 if that file is missing; otherwise it copies it to `public/schema.graphql`
   (served as `/schema.graphql`) and to `.schema/schema.public.gql`, writes the reference landing page to
   `.schema/index.md`, and runs `gqlmd graphql-to-doc` (`@graphql-markdown/cli`), which reads `graphql.config.js` and
@@ -42,7 +42,7 @@
 
 | Path | Made by | In git |
 |---|---|---|
-| `schema/schema.public.gql` | a copy of main-craft's public schema (manual for now) | yes |
+| `schema/schema.public.gql` | a copy of main-craft's public schema (kept by the `bot/schema-sync` PR) | yes |
 | `public/schema.graphql` | `gen-reference.mjs` | no (gitignored) |
 | `content/reference/`, `.schema/` | `gen-reference.mjs` | no (gitignored) |
 | `out/` | `next build` | no (gitignored) |

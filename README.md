@@ -15,8 +15,8 @@ Hand-written pages are MDX under `content/` (sidebar order in the `_meta.js` fil
 
 ## The schema
 
-`schema/schema.public.gql` is the public schema. It is copied from main-craft's published public schema when the
-API changes (a manual copy for now); never edit its contents. Everything schema-derived is built from it:
+`schema/schema.public.gql` is the public schema. It is copied from main-craft's public schema; main-craft CI
+opens a `bot/schema-sync` PR when it changes. Never edit its contents by hand. Everything schema-derived is built from it:
 
 - `scripts/gen-reference.mjs` copies it to `public/schema.graphql` (served as `/schema.graphql`) and generates
   `content/reference/` with `@graphql-markdown/cli`. Both outputs are gitignored.
