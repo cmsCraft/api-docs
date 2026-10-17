@@ -18,8 +18,8 @@ vocabulary.
 
 ### Public schema
 
-The one schema source of the site. It is copied from main-craft's published public schema when the API changes (a
-manual copy for now). Both the **Schema download** and the **Reference pages** are built from it.
+The one schema source of the site. It is copied from main-craft's public schema; main-craft CI opens a
+`bot/schema-sync` PR when it changes. Both the **Schema download** and the **Reference pages** are built from it.
 _Avoid_: editing it by hand, or reading the schema from anywhere else (introspection is disabled in production).
 
 ### Reference page

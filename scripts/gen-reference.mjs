@@ -2,7 +2,7 @@
 //   1. public/schema.graphql — the downloadable SDL, served at /schema.graphql
 //   2. content/reference/    — the generated API Reference (via @graphql-markdown/cli)
 //
-// The only source is schema/schema.public.gql, which the backend's CI syncs after each production deploy
+// The only source is schema/schema.public.gql, copied from main-craft; main-craft CI opens a bot/schema-sync PR when it changes
 // (see schema/README.md). Never hand-edit it.
 //
 // The CLI (@graphql-markdown/cli@0.7.x) is driven by graphql-config: it reads ./graphql.config.js, whose `schema`
@@ -21,7 +21,7 @@ const PUBLIC_SDL_ALIAS = 'public/schema.public.gql'
 const main = async () => {
 	if (!existsSync(SOURCE_SDL)) {
 		console.error(
-			`[gen-reference] ${SOURCE_SDL} is missing. It is synced from the backend's CI after each production deploy; restore it from git (git checkout -- ${SOURCE_SDL}).`
+			`[gen-reference] ${SOURCE_SDL} is missing. It is copied from main-craft (a bot/schema-sync PR keeps it current); restore it from git (git checkout -- ${SOURCE_SDL}).`
 		)
 		process.exit(1)
 	}
