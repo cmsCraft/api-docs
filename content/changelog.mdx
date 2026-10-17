@@ -9,6 +9,9 @@ production; see the [stability policy](/schema#stability-policy).
 
 ## 2026-10-17
 
+- **Request API access from the admin.** Open **Settings → Integrations** and use the **Request API access** card; no
+  e-mail needed. Staff review the request and e-mail you the decision
+  ([Authentication](/auth#getting-the-token)).
 - **Deprecated: `publicOrderByNumber`** (the older order lookup by number and e-mail). Use `publicShopOrder(token)`; without
   the order link, a customer can still withdraw with `requestShopOrderWithdrawal(orderNumber, email)`. It will be removed
   after 2027-01-15.
@@ -41,8 +44,8 @@ production; see the [stability policy](/schema#stability-policy).
   still recommend calling it from your server ([Authentication](/auth#call-the-api-from-your-server)).
 - **Per-token limit.** On a developer project whose site cms-craft does not host, the general 200-per-minute limit is
   counted per API token instead of per IP.
-- **Token access.** The API token is shown to the owner of a developer project who has developer access. Access is
-  granted by our team: e-mail support@cms-craft.com ([Authentication](/auth#getting-the-token)).
+- **Token access.** The API token is shown to the owner of a developer project who has developer access. Access was
+  granted by our team on request ([Authentication](/auth#getting-the-token)).
 - **Token checks.** A `project-auth` value that is not 64 lowercase hex characters is refused with
   `not matched token`. A new or regenerated token can take up to 2 seconds to start working
   ([Authentication](/auth#regenerating-the-token)).
