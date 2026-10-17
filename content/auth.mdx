@@ -25,17 +25,32 @@ Access is granted by our team today. E-mail support@cms-craft.com and tell us wh
 account developer access and set up a **developer project** that you own. A new project starts in a build stage, for
 development.
 
-Then, in the cms-craft admin panel, open the project, go to **Settings → Integrations → API Token** and click
-**Reveal token**. The token is shown only to the owner of a developer project who has developer access, and to
-cms-craft staff. Other project members do not see the card.
+Then, in the cms-craft admin panel, open the project and go to **Settings → Integrations**. Two cards matter here:
+
+- **Developer** has what you need to make a request: the **Endpoint** (with a copy button), the **Header** name
+  (`project-auth`), the project's **Stage** (Build, Live or Suspended), your **Usage**, and links to this
+  documentation.
+- **API Token** has the **Reveal token** button.
+
+Both are shown only to the owner of a developer project who has developer access, and to cms-craft staff. Other
+project members do not see them.
 
 The token is 64 lowercase hexadecimal characters (`0-9`, `a-f`). Send it exactly as shown, with no prefix such as
 `Bearer` and no spaces. Any other value is refused with `not matched token`.
 
+### Usage
+
+The **Usage** row shows how many requests (and, in the Build stage, mutations) the project made today, counted per
+UTC day. A Build project shows "N of 5,000 requests today" and "N of 100 mutations today". A Live developer
+project shows "N of 1,000,000 requests this month". The numbers and what they mean are in
+[Errors & limits](/errors#usage). They are informational: nothing is refused during the beta.
+
+Free during beta. Paid plans will follow; we will announce pricing and give notice before any charge.
+
 ## Regenerating the token
 
-On the same card you can **Regenerate Token**. If cms-craft also hosts the project's site, you can reveal the token
-but not regenerate it. E-mail support instead: we rotate it for you, so the hosted site keeps working.
+On the **API Token** card you can **Regenerate Token**. If cms-craft also hosts the project's site, you can reveal
+the token but not regenerate it. E-mail support instead: we rotate it for you, so the hosted site keeps working.
 
 The old token stops working **immediately**: every request that still sends it gets `not matched token`. The new
 token can take up to 2 seconds to start working, so a request sent right after regenerating may also get
@@ -43,6 +58,9 @@ token can take up to 2 seconds to start working, so a request sent right after r
 regenerating (and redeploy those apps if they read the variable at build time).
 
 Regenerate the token if it leaked. Regenerating it does not change the [revalidation secret](/guides/revalidation).
+
+A suspended project (Stage: Suspended) answers every request that carries its valid token with HTTP 403 and
+`PROJECT_SUSPENDED`. Contact support@cms-craft.com to restore it.
 
 ## How secret is the token?
 

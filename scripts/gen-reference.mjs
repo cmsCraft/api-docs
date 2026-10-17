@@ -15,6 +15,8 @@ import { copyFile, mkdir, writeFile } from 'node:fs/promises'
 const SOURCE_SDL = 'schema/schema.public.gql'
 const WORK_SDL = '.schema/schema.public.gql'
 const PUBLIC_SDL = 'public/schema.graphql'
+// Second path: the admin panel's Developer panel links to /schema.public.gql
+const PUBLIC_SDL_ALIAS = 'public/schema.public.gql'
 
 const main = async () => {
 	if (!existsSync(SOURCE_SDL)) {
@@ -28,7 +30,8 @@ const main = async () => {
 	await mkdir('public', { recursive: true })
 	await copyFile(SOURCE_SDL, WORK_SDL)
 	await copyFile(SOURCE_SDL, PUBLIC_SDL)
-	console.log(`[gen-reference] ${SOURCE_SDL} -> ${WORK_SDL}, ${PUBLIC_SDL}`)
+	await copyFile(SOURCE_SDL, PUBLIC_SDL_ALIAS)
+	console.log(`[gen-reference] ${SOURCE_SDL} -> ${WORK_SDL}, ${PUBLIC_SDL}, ${PUBLIC_SDL_ALIAS}`)
 
 	// Reference section landing page shown at /reference. gqlmd copies this file by basename into content/reference/,
 	// so it must be named index.md. It lives in the gitignored .schema/ working dir to avoid a stray route.

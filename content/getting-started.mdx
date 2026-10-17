@@ -12,15 +12,16 @@ Free during beta. Paid plans will follow; we will announce pricing and give noti
 ## 1. Get your project's API token
 
 Access is granted by our team today: e-mail support@cms-craft.com, and we set up a developer project that you own.
-Then, in the cms-craft admin panel, open the project, go to **Settings → Integrations → API Token** and click
-**Reveal token**. Details: [Authentication](/auth#getting-the-token).
+Then, in the cms-craft admin panel, open the project and go to **Settings → Integrations**. The **Developer** section
+shows the endpoint, the header name, the project's stage and your usage. Under it, the **API Token** card has a
+**Reveal token** button. Details: [Authentication](/auth#getting-the-token).
 
 Put it in your server's environment, never in browser code:
 
 ```bash filename=".env.local"
 CMS_API_URL=https://main-craft.cms-craft.com/graphql/public
 CMS_PROJECT_TOKEN=paste-the-api-token-here
-# Settings → Integrations → Revalidation secret (used in step 4)
+# Settings → Integrations → Revalidation secret → Reveal secret (used in step 4)
 REVALIDATE_TOKEN=paste-the-revalidation-secret-here
 ```
 
@@ -242,8 +243,9 @@ export const POST = async (request: NextRequest) => {
 }
 ```
 
-Run `npm run dev`, open `http://localhost:3000`, and you see your posts. Deploy it, add the site's domain to the
-project in the admin panel, and every save refreshes the cached pages. How that works:
+Run `npm run dev`, open `http://localhost:3000`, and you see your posts. Deploy it and add the site's domain to the
+project (you can do it yourself on a developer project we do not host, see
+[Cache revalidation](/guides/revalidation#domains)), and every save refreshes the cached pages. How that works:
 [Cache revalidation](/guides/revalidation).
 
 ### Astro
@@ -310,4 +312,4 @@ A statically built Astro site shows new content after its next build. To refresh
 - [Querying content](/guides/querying-content): pages, posts, products, categories
 - [Form mutations](/guides/mutations): contact form, newsletter, orders
 - [Schema & types](/schema): download the schema and generate TypeScript types
-- [Errors & limits](/errors): error codes, rate limits, query limits
+- [Errors & limits](/errors): error codes, rate limits, usage, query limits
