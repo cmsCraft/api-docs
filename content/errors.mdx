@@ -43,7 +43,7 @@ it next to the code in `extensions`.
 
 | `extensions.code` | HTTP | When |
 |---|---|---|
-| `SHOP_NOT_READY` | 200 | `createShopOrder` on a shop that is not open yet: not enabled by cms-craft, or the owner has not finished setting it up. |
+| `SHOP_NOT_READY` | 200 | `createShopOrder` once the e-shop module is on but the owner has not finished setting the shop up. With the module off the code is `MODULE_DISABLED`. |
 | `TERMS_NOT_ACCEPTED` | 200 | `termsAccepted` was not `true`. |
 | `NOT_BUYABLE` | 200 | A product cannot be bought, or needs an option the line does not have. `extensions` has `productId` (and `optionId`). |
 | `OUT_OF_STOCK` | 200 | Not enough stock. `extensions` has `productId` and `optionId`. Nothing is placed. |

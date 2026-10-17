@@ -5,8 +5,9 @@ title: E-shop
 # E-shop
 
 > **In beta, coming soon.** The e-shop API is in place, but a project's shop does not take orders until cms-craft
-> enables it for that project. Until then `createShopOrder` fails with `SHOP_NOT_READY` (or `MODULE_DISABLED`), and
-> `publicShop` answers `ready: false`. [Contact us](mailto:support@cms-craft.com) to get a shop switched on. Names,
+> enables it for that project. Until then `publicShop` and `createShopOrder` fail with `MODULE_DISABLED`. Once the
+> module is on but the owner has not finished the setup, `publicShop` answers `ready: false` and `createShopOrder`
+> fails with `SHOP_NOT_READY`. [Contact us](mailto:support@cms-craft.com) to get a shop switched on. Names,
 > fields and limits can still change; changes are announced in the [changelog](/changelog).
 
 The e-shop module sells products from the project's catalog: the visitor picks products (and options), you send the
@@ -90,10 +91,12 @@ query ShopProducts {
 
 - `shopPriceMinor` is the price in the shop's currency, in minor units. `null` means the product cannot be bought in
   the shop.
-- `vatRate` is the VAT percentage (for example `21`), or `null` when the shop is not a VAT payer. Prices include VAT.
+- `vatRate` is the VAT percentage stored on the product (for example `21`). A shop that is not a VAT payer may still
+  return a number here; checkout ignores it. On a VAT-payer shop a product without a rate cannot be bought
+  (`shopPriceMinor` is `null`, and an order with it fails with `NOT_BUYABLE`). Prices include VAT.
 - `inStock` is `false` when nothing is left to sell. For a product with options it is `true` while any option has
-  stock; a product that needs no shipping (a service, a download) is always in stock. The stock count itself is never
-  shown.
+  stock; a product that needs no shipping (a service, a download) is always in stock. `sellQuantity` of the product is
+  public, but the stock of each option is never shown: use `inStock` on the option.
 - `requiresShipping` tells you whether the cart needs a delivery method.
 - `options` are the choices of a product (a size, a colour), each with its own `inStock`; `optionListName` is the
   heading to show above them ("Size"). A product with options can only be bought with one of them chosen.
@@ -133,11 +136,11 @@ mutation PlaceOrder($input: CreateShopOrderInput!) {
 | Field | Rules |
 |---|---|
 | `items` | 1 to 50 lines, at most 100 units in all. Each line has `productId`, `quantity` (1 to 99) and `optionId`, which is required when the product has options and must be left out when it has none. |
-| `deliveryMethodId` | An id from `publicShop`. Leave it out only when no product in the order requires shipping. |
-| `packetaPoint` | `id`, `name` and `address` of the point the visitor picked. Required for a `Packeta` method. |
-| `address` | `street`, `city`, `postalCode` and a two-letter `country` code. Required for a `Flat` method, and the country must be in the method's `shipsTo`. |
+| `deliveryMethodId` | An id from `publicShop`. Leave it out when no product in the order requires shipping; sending one then fails with `INVALID_DELIVERY`, as does leaving it out when something ships. |
+| `packetaPoint` | `id` (up to 32 characters), `name` (200) and `address` (300) of the point the visitor picked. Required for a `Packeta` method. |
+| `address` | `street` and `city` (up to 200 characters each), `postalCode` (20) and a two-letter `country` code. Required for a `Flat` method, and the country must be in the method's `shipsTo`. |
 | `paymentMethod` | One of `publicShop { paymentMethods }`. |
-| `customer` | `name` (up to 120 characters), `email` and an optional `phone`. |
+| `customer` | `name` (up to 120 characters), `email` (up to 254) and an optional `phone` (up to 40). |
 | `note` | Optional, up to 1,000 characters. Plain text. |
 | `termsAccepted` | Must be `true`, or the order fails with `TERMS_NOT_ACCEPTED`. |
 | `locale` | `cs` or `cs-CZ` style: two lowercase letters, optionally a dash and two capitals. The e-mails to the customer use it. |
@@ -164,7 +167,8 @@ Keys are unique per project. Without a key, a retry places a second order.
 
 - `BankTransfer`: the order is `Pending` until the shop owner marks it paid. The order page shows the account,
   variable symbol, amount and a QR payload for the bank app. An unpaid order is cancelled after `unpaidCancelDays`.
-- `Cash`: pay at pickup. Only for an order delivered with a `Pickup` method; otherwise `PAYMENT_NOT_AVAILABLE`.
+- `Cash`: pay at pickup. Only for an order delivered with a `Pickup` method; otherwise `PAYMENT_NOT_AVAILABLE`. A cash
+  order that is still `Pending` is also cancelled after `unpaidCancelDays`.
 - `Card`: **not available yet.** It is refused with `CARD_NOT_AVAILABLE`, whatever the shop offers. Do not show it.
 
 The methods in `publicShop { paymentMethods }` are the ones the owner has set up; `Card` may be listed there before it
@@ -185,8 +189,8 @@ a checkout should handle:
 ## Reading an order
 
 The `accessToken` from `createShopOrder` is the order's secret link token: whoever has it can read the order. The
-shop's confirmation e-mail links to the order page on the project's main domain with the same token, so build that page
-and read the order on your server:
+shop's confirmation e-mail links to `https://<project main domain>/<locale>/order/<token>` (`locale` is the one you sent
+with the order), so build **exactly that route** on your site and read the order on your server:
 
 ```graphql
 query ShopOrder($token: String!) {
@@ -221,6 +225,7 @@ query ShopOrder($token: String!) {
 }
 ```
 
+- An older lookup, `publicOrderByNumber`, still exists; use `publicShopOrder(token)`.
 - `status` is `Pending`, `Paid`, `Processing`, `Shipped`, `Delivered`, `Cancelled` or `Refunded`.
 - `bankTransfer` is set only while the order is `Pending` and paid by bank transfer.
 - `cancelAt` is when an unpaid order will be cancelled automatically.
@@ -252,9 +257,10 @@ accepted and the money returned is for the shop owner to handle.
 
 | Operation | Limit |
 |---|---|
-| `publicShop`, `publicShopOrder` | The general query limit (200 per minute) |
-| `createShopOrder` | 20 per minute per IP, **and** 20 per minute for the whole project (per API token) |
-| `requestShopOrderWithdrawal` | 5 per minute per IP, and 20 per minute for the whole project |
+| `publicShop`, `publicShopOrder` | The general query limit: 200 per minute, counted per API token on a developer project whose site we do not host, per IP otherwise |
+| `publicProducts` (the product fields above) | 30 per minute per IP |
+| `createShopOrder` | 20 per minute per IP, **and** 20 per minute for the whole project |
+| `requestShopOrderWithdrawal` | 5 per minute per IP, **and** 20 per minute for the whole project |
 
 The per-project limit on `createShopOrder` and `requestShopOrderWithdrawal` applies to your server too, so a
 sudden burst of checkouts is answered with `TOO_MANY_REQUESTS` (HTTP 429, with `Retry-After`). Your server is one IP:

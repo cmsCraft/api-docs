@@ -9,15 +9,16 @@ production; see the [stability policy](/schema#stability-policy).
 
 ## 2026-10-17
 
-- **Breaking: `createPublicOrder` and its types were removed; use `createShopOrder` (e-shop module).** The removed
+- **Breaking, already in effect: `createPublicOrder` and its types were removed; use `createShopOrder` (e-shop
+  module).** This change is live today and was not announced in advance. The removed
   types are `CreatePublicOrderInput`, `PublicOrderItemInput` and `PublicOrderResult`. `createShopOrder` is priced on
   our side, supports delivery methods (including Packeta points) and bank-transfer payment, and takes an optional
-  `idempotencyKey` ([E-shop guide](/guides/shop)). The new mutation needs the e-shop module.
+  `idempotencyKey` ([E-shop guide](/guides/shop)). The new mutation needs the e-shop module. `ModuleType.ORDERS` stays in the enum but can no longer be enabled.
 - **E-shop API (beta).** New operations: `publicShop`, `publicShopOrder(token)`, `createShopOrder` and
   `requestShopOrderWithdrawal`. New product fields: `shopPriceMinor`, `vatRate`, `inStock`, `requiresShipping`,
   `options` and `optionListName`. New types include `PublicShop`, `ShopOrder`, `CreateShopOrderInput`,
   `CreateShopOrderResult` and `DeliveryMethodType`, and the enums gained `ModuleType.ESHOP` and `EntityType.SHOP`. The
-  module is in beta: a shop answers `SHOP_NOT_READY` until cms-craft enables it for the project
+  module is in beta: a project without it answers `MODULE_DISABLED`, and once it is on, a shop answers `SHOP_NOT_READY` until its setup is finished
   ([E-shop guide](/guides/shop), [Shop errors](/errors#shop-errors)).
 - **Developer panel.** The admin panel has a **Developer** section under **Settings → Integrations** with the
   endpoint, the header name, the project's stage and your usage today. It sits above the **API Token** card
