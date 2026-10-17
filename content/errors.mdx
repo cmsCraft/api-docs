@@ -168,7 +168,7 @@ Days and months follow UTC. A mutation counts toward both the request total and 
 
 **Nothing is refused during the beta.** If a project goes over a limit, we get a notice and may contact you, but
 your requests keep working. Should we ever start refusing requests over a limit, it will be announced in the
-[changelog](/changelog) first, and the answer will be HTTP 429 with `Retry-After`.
+[changelog](/changelog) first, and the answer will be HTTP 429 (`DAILY_LIMIT`).
 
 You see your own numbers (requests and mutations today, requests this month) in the Developer panel of the admin
 panel: [Authentication](/auth#getting-the-token).
