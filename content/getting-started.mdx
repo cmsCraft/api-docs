@@ -199,7 +199,7 @@ interface PageData {
 	getPublicContentBySeoUrl: { id: number; translations: (Translation & { message: string | null })[] | null }
 }
 
-// Next 16 with Cache Components on: this page reads request-time CMS data, so opt out of the build-time prerender check.
+// Render this page on each request instead of at build time: it fetches from the CMS using the slug.
 export const instant = false
 
 const ContentPage = async ({ params }: { params: Promise<{ slug: string }> }) => {
@@ -253,6 +253,9 @@ Run `npm run dev`, open `http://localhost:3000`, and you see your posts. Deploy 
 project (you can do it yourself on a developer project we do not host, see
 [Cache revalidation](/guides/revalidation#domains)), and every save refreshes the cached pages. How that works:
 [Cache revalidation](/guides/revalidation).
+
+On your host, set the same environment variables (`CMS_API_URL`, `CMS_PROJECT_TOKEN`, `REVALIDATE_TOKEN`) for the build
+and the running site. The home page reads the API during `next build`, so the build fails without them.
 
 ### Astro
 
