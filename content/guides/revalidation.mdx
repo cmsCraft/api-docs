@@ -77,9 +77,12 @@ add a time-based expiry as a safety net.
 
 ## Testing locally
 
-cms-craft never calls `localhost`. To test the webhook from your machine, expose it with a tunnel (for example
+cms-craft cannot reach your `localhost`. To test the webhook from your machine, expose it with a tunnel (for example
 `cloudflared tunnel` or `ngrok`) and add the tunnel's hostname as a domain: it is public and served over HTTPS, as
 required above.
+
+Remove the tunnel's hostname from the project domains when you are done. A temporary tunnel address can later belong to
+someone else, who would then receive your revalidation secret with every save. If you forgot, regenerate the secret.
 
 ## If your site does not refresh
 
