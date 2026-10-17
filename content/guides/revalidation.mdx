@@ -75,6 +75,17 @@ Each save sends the request once and never retries: if your site was down or ans
 lost and the cached data stays until the next save that touches it. Do not cache forever if you cannot afford that;
 add a time-based expiry as a safety net.
 
+## Testing locally
+
+cms-craft never calls `localhost`. To test the webhook from your machine, expose it with a tunnel (for example
+`cloudflared tunnel` or `ngrok`) and add the tunnel's hostname as a domain: it is public and served over HTTPS, as
+required above. While developing you can also rely on a time-based expiry instead.
+
+## If your site does not refresh
+
+You cannot see failed calls yet. If your site does not refresh after a save, e-mail support@cms-craft.com; we can see
+why the call failed.
+
 ## The revalidation secret
 
 It is in the admin panel under **Settings → Integrations**, on the **Revalidation secret** card (click
