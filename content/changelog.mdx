@@ -9,6 +9,9 @@ production; see the [stability policy](/schema#stability-policy).
 
 ## 2026-10-17
 
+- **Deprecated: `publicOrderByNumber`** (the older order lookup by number and e-mail). Use `publicShopOrder(token)`; without
+  the order link, a customer can still withdraw with `requestShopOrderWithdrawal(orderNumber, email)`. It will be removed
+  after 2027-01-15.
 - **Breaking, already in effect: `createPublicOrder` and its types were removed; use `createShopOrder` (e-shop
   module).** This change is live today and was not announced in advance. The removed
   types are `CreatePublicOrderInput`, `PublicOrderItemInput` and `PublicOrderResult`. `createShopOrder` is priced on
