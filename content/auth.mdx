@@ -24,15 +24,16 @@ login, no cookie and no CSRF token on this endpoint.
 You request access yourself, in the admin panel; no e-mail is needed.
 
 1. Sign up at the cms-craft admin and create a project. You are its owner.
-2. Open the project, go to **Settings → Integrations** and find the **Request API access** card. Answer "What are you
-   building? Who is it for?" (10 to 1,000 characters) and press **Send request**. The card then shows
-   **Request pending**.
+2. Open the project, go to **Settings → Integrations** and find the **Request API access** card. Fill in **About your
+   project** (its placeholder asks "What are you building? Who is it for?"; 10 to 1,000 characters) and press
+   **Send request**. The card then shows **Request pending**.
 3. cms-craft staff review the request. You get an e-mail when it is decided: approved, or not approved with an
    optional reason.
 
 Only the project owner can send the request. A project has one pending request at a time. After a "not approved"
 decision you can ask again 24 hours later, and one user can send at most 3 requests per 24 hours. A project whose site
-cms-craft hosts cannot use the button: write to support@cms-craft.com.
+cms-craft hosts cannot use the button: write to support@cms-craft.com. One account can own at most 3 projects in the
+Build stage; a request that would make a fourth is refused.
 
 After approval the project is a **developer project** that you own, in the Build stage (for development). In
 **Settings → Integrations** two cards matter:
@@ -42,8 +43,8 @@ After approval the project is a **developer project** that you own, in the Build
   documentation.
 - **API Token** has the **Reveal token** button.
 
-Both appear after your request is approved, and are shown only to the owner of the developer project and to cms-craft staff. Other
-project members do not see them.
+Both appear after your request is approved, and are shown only to the owner of the developer project and to cms-craft
+staff. Other project members do not see them.
 
 The token is 64 lowercase hexadecimal characters (`0-9`, `a-f`). Send it exactly as shown, with no prefix such as
 `Bearer` and no spaces. Any other value is refused with `not matched token`.
