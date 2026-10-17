@@ -23,6 +23,7 @@
 			"!.schema",
 			"!schema",
 			"!public/schema.graphql",
+			"!public/schema.public.gql",
 			"!next-env.d.ts"
 		]
 	}

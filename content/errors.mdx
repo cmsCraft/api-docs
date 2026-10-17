@@ -154,15 +154,15 @@ What this means in practice:
 ## Usage
 
 Every operation that carries a valid token is counted for your project, once per request: a query with five root
-fields or aliases counts once. Counting is separate from the per-minute [rate limits](#rate-limits) above. Each
+fields or aliases counts once, while the per-minute rate limits count each root field. Counting is separate from the per-minute [rate limits](#rate-limits) above. Each
 request counts when it is answered, including one that comes back with an error such as `NOT_FOUND`; a request
 for a suspended project, or with a missing or wrong token, is not counted.
 
 | Project | Counted and limited |
 |---|---|
-| Developer project in the **Build** stage | 5,000 requests and 100 mutations per day |
+| Any project in the **Build** stage | 5,000 requests and 100 mutations per day |
 | Developer project that is **Live** | 1,000,000 requests per month |
-| Any other project | Counted, no limit |
+| Any other project (a Live project that is not a developer project) | Counted, no limit |
 
 Days and months follow UTC. A mutation counts toward both the request total and the mutation total.
 
