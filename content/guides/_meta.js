@@ -4,6 +4,7 @@ export default {
 	localization: 'Localization',
 	filtering: 'Filtering products',
 	mutations: 'Form mutations',
+	shop: 'E-shop (beta)',
 	revalidation: 'Cache revalidation',
 	'code-examples': 'Code examples'
 }

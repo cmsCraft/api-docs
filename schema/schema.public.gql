@@ -319,47 +319,40 @@ input CreatePublicBookingInput {
   startDate: DateTime!
 }
 
-input CreatePublicOrderInput {
-  billingCity: String
-  billingCountry: String
-  billingPostalCode: String
-  billingSameAsShipping: Boolean = true
-  billingState: String
-  billingStreet: String
+input CreateShopOrderInput {
+  """Required for Flat"""
+  address: ShopAddressInput
+  customer: ShopCustomerInput!
 
-  """Currency ID"""
-  currencyId: Int!
+  """Null only when no item requires shipping"""
+  deliveryMethodId: Int
 
-  """Customer email"""
-  customerEmail: String!
+  """
+  Optional retry key, 8..100 characters of A-Z a-z 0-9 _ -, unique per project. A retry with the same key and payload returns the first order (same orderNumber and a token for it) and places nothing new; the same key with a different payload is IDEMPOTENCY_KEY_REUSED
+  """
+  idempotencyKey: String
 
-  """Customer full name"""
-  customerName: String!
+  """1..50 lines, at most 100 units in all"""
+  items: [ShopOrderItemInput!]!
 
-  """Customer notes/requests"""
-  customerNotes: String
+  """e.g. cs or cs-CZ"""
+  locale: String!
+  note: String
 
-  """Customer phone"""
-  customerPhone: String
+  """Required for Packeta"""
+  packetaPoint: PacketaPointInput
 
-  """Products to order"""
-  items: [PublicOrderItemInput!]!
-  paymentMethod: PaymentMethod
+  """BankTransfer | Card | Cash"""
+  paymentMethod: PaymentMethod!
 
-  """Shipping city"""
-  shippingCity: String
+  """Must be true"""
+  termsAccepted: Boolean!
+}
 
-  """Shipping country code"""
-  shippingCountry: String
-
-  """Shipping postal code"""
-  shippingPostalCode: String
-
-  """Shipping state/region"""
-  shippingState: String
-
-  """Shipping street address"""
-  shippingStreet: String
+type CreateShopOrderResult {
+  accessToken: String!
+  checkoutUrl: String
+  orderNumber: String!
 }
 
 type CurrencyType {
@@ -380,6 +373,12 @@ type CurrencyType {
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
 scalar DateTime
+
+enum DeliveryMethodType {
+  Flat
+  Packeta
+  Pickup
+}
 
 type DonationConfig {
   accountHolderName: String!
@@ -443,6 +442,7 @@ enum EntityType {
   PRODUCT
   PROJECT
   PROJECT_INVITATION
+  SHOP
   SITE
   SLOT
   TAG
@@ -524,6 +524,11 @@ type LanguageType {
   updatedAt: DateTime
 }
 
+type LocalizedText {
+  languageCode: String!
+  value: String!
+}
+
 input MailInputType {
   mailLanguage: MainMailDtoMailLanguage!
 
@@ -584,6 +589,7 @@ enum ModuleType {
   CONNECTIONS
   CONTENT
   DONATIONS
+  ESHOP
   NEWSLETTER
   ORDERS
   PETS
@@ -597,8 +603,13 @@ type Mutation {
   """Create a guest booking"""
   createPublicBooking(input: CreatePublicBookingInput!): PublicBookingResult!
 
-  """Create a guest order"""
-  createPublicOrder(input: CreatePublicOrderInput!): PublicOrderResult!
+  """Place a shop order; returns the order link token once"""
+  createShopOrder(input: CreateShopOrderInput!): CreateShopOrderResult!
+
+  """
+  Record the consumer's withdrawal request; by token, or by order number + e-mail
+  """
+  requestShopOrderWithdrawal(input: ShopWithdrawalInput!): Boolean!
   sendContactRequest(mailInput: MailInputType!): Boolean!
   submitAdoptionRequest(input: PublicCreateAdoptionRequestInput!): PublicAdoptionRequestResult!
   submitRegistration(input: SubmitRegistrationInput!): RegistrationResult!
@@ -635,6 +646,18 @@ enum OrderStatus {
   Processing
   Refunded
   Shipped
+}
+
+type PacketaPoint {
+  address: String!
+  id: String!
+  name: String!
+}
+
+input PacketaPointInput {
+  address: String!
+  id: String!
+  name: String!
 }
 
 type PageMetaDto {
@@ -791,6 +814,16 @@ type ProductFile {
   updatedAt: DateTime
 }
 
+type ProductOptionType {
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: Int!
+  inStock: Boolean!
+  label: [LocalizedText!]!
+  sortOrder: Int!
+  updatedAt: DateTime
+}
+
 type ProductPriceType {
   createdAt: DateTime!
   currencyEntity: CurrencyType!
@@ -830,26 +863,32 @@ type ProductType {
   featuredBadge: ProductBadge
   featuredPosition: Float
   id: Int!
+  inStock: Boolean!
   inventory: [InventoryItem!]
   isBookable: Boolean!
   isFeatured: Boolean!
   isPage: Boolean!
   isSellable: Boolean!
+  optionListName: [LocalizedText!]
+  options: [ProductOptionType!]!
   prices: [ProductPriceType!]
   productAttributes: [ProductAttribute!]
   productFiles: [ProductFile!]
   project: ProjectType!
   rates: [RentalRate!]
   rentableUnits: Float
+  requiresShipping: Boolean!
   salePrices: [SalePriceType!]
   sellQuantity: Float
   seoImage: File
   seoUrl: String
+  shopPriceMinor: Int
   sku: String!
   slug: String!
   status: ProductStatus!
   translations: [ProductTranslation!]
   updatedAt: DateTime
+  vatRate: Int
 }
 
 type ProjectDomainsType {
@@ -1083,6 +1122,16 @@ input PublicCreateAdoptionRequestInput {
   requesterName: String!
 }
 
+type PublicDeliveryMethod {
+  freeAboveMinor: Int
+  id: Int!
+  name: [LocalizedText!]!
+  pickupNote: [LocalizedText!]
+  priceMinor: Int!
+  shipsTo: [String!]!
+  type: DeliveryMethodType!
+}
+
 type PublicNewsletterSubscription {
   email: String!
   id: Int!
@@ -1123,24 +1172,6 @@ type PublicOrderItem {
   quantity: Int!
   taxIncluded: Boolean!
   unitPrice: Float!
-}
-
-input PublicOrderItemInput {
-  """Notes for this item"""
-  notes: String
-
-  """Product ID"""
-  productId: Int!
-
-  """Quantity to order"""
-  quantity: Int!
-}
-
-type PublicOrderResult {
-  message: String
-  orderNumber: String!
-  success: Boolean!
-  totalAmount: String!
 }
 
 input PublicPetFilterInput {
@@ -1263,6 +1294,20 @@ type PublicScheduleSlot {
   subjectName: String
 }
 
+type PublicShop {
+  complaintsUrl: String
+  currency: ShopCurrency!
+  deliveryMethods: [PublicDeliveryMethod!]!
+  operator: ShopOperator
+  packetaApiKey: String
+  paymentMethods: [PaymentMethod!]!
+  ready: Boolean!
+  termsUrl: String
+  unpaidCancelDays: Int!
+  vatPayer: Boolean!
+  withdrawalFormUrl: String
+}
+
 type PublicStreamSession {
   avgViewers: Float
   durationMinutes: Int!
@@ -1364,6 +1409,12 @@ type Query {
   publicProjectHasModule(moduleType: ModuleType!): Boolean!
   publicProjectInfo: PublicProjectDto!
 
+  """The shop's public settings: what checkout is rendered from"""
+  publicShop: PublicShop!
+
+  """The customer's order, read by its secret link token"""
+  publicShopOrder(token: String!): ShopOrder!
+
   """Get sitemap data for SSG"""
   sitemapData: SitemapData!
 }
@@ -1420,6 +1471,116 @@ type SalePriceType {
   product: ProductType!
   taxIncluded: Boolean!
   updatedAt: DateTime
+}
+
+type ShopAddress {
+  city: String!
+  country: String!
+  postalCode: String!
+  street: String!
+}
+
+input ShopAddressInput {
+  city: String!
+  country: String!
+  postalCode: String!
+  street: String!
+}
+
+type ShopBankTransfer {
+  accountNumberCz: String
+  amountMinor: Int!
+  iban: String!
+  qrPayload: String!
+  variableSymbol: String!
+}
+
+enum ShopCurrency {
+  CZK
+  EUR
+}
+
+input ShopCustomerInput {
+  email: String!
+  name: String!
+  phone: String
+}
+
+type ShopOperator {
+  address: String!
+  dic: String
+  email: String!
+  ico: String
+  name: String!
+  phone: String
+}
+
+type ShopOrder {
+  """Only while Pending + BankTransfer"""
+  bankTransfer: ShopBankTransfer
+
+  """
+  When an unpaid bank-transfer or cash order (still Pending) is cancelled automatically
+  """
+  cancelAt: DateTime
+  createdAt: DateTime!
+  currency: ShopCurrency!
+  deliveredAt: DateTime
+  delivery: ShopOrderDelivery
+  discountMinor: Int!
+  items: [ShopOrderItem!]!
+  orderNumber: String!
+  paidAt: DateTime
+  paymentMethod: PaymentMethod!
+  shippedAt: DateTime
+  shippingMinor: Int!
+  status: OrderStatus!
+  subtotalMinor: Int!
+  totalMinor: Int!
+  trackingNumber: String
+  trackingUrl: String
+  vatBreakdown: [VatLine!]!
+  withdrawalRequestedAt: DateTime
+}
+
+type ShopOrderDelivery {
+  address: ShopAddress
+  name: String!
+  packetaPoint: PacketaPoint
+
+  """The shipping actually charged; 0 when it was free"""
+  priceMinor: Int!
+  type: DeliveryMethodType!
+}
+
+type ShopOrderItem {
+  lineTotalMinor: Int!
+  name: String!
+  optionLabel: String
+  quantity: Int!
+  unitPriceMinor: Int!
+  vatRate: Int
+}
+
+input ShopOrderItemInput {
+  optionId: Int
+  productId: Int!
+
+  """1..99"""
+  quantity: Int!
+}
+
+input ShopWithdrawalInput {
+  email: String
+
+  """Optional, up to 2000 characters"""
+  message: String
+
+  """With email: finds the order when the link is lost"""
+  orderNumber: String
+
+  """The order link token"""
+  token: String
 }
 
 type SitemapData {
@@ -1517,6 +1678,12 @@ type Tag {
   id: Int!
   label: String!
   updatedAt: DateTime
+}
+
+type VatLine {
+  baseMinor: Int!
+  rate: Int!
+  vatMinor: Int!
 }
 
 """Supported SEO verification providers"""
