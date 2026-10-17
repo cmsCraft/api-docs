@@ -72,11 +72,14 @@ answers browsers too, but a token in browser code is visible to every visitor
 ## 4. A complete starter
 
 The starter lists the posts tagged `blog`, renders one page by its SEO URL, and refreshes its cache when an editor
-saves. Tag a few contents `blog` in the admin panel to see them listed.
+saves. Tag a few contents `blog` in the admin panel to see them listed, and give each post an SEO URL: in the admin,
+open the content, switch **Is page** on, then fill **SEO URL** (when creating a content, fill the **Seo-url** field).
+Without an SEO URL a post is listed as plain text and its page cannot be reached.
 
 ### Next.js (App Router)
 
 Four files on top of `create-next-app` (TypeScript, App Router, the `@/*` import alias), plus `.env.local` from step 1.
+The starter targets Next.js 16 (App Router) with Cache Components on, which is the `create-next-app` default.
 
 ```ts filename="lib/cms.ts"
 // Server-only helper for the cms-craft public API. Never import it from a 'use client' file.
@@ -196,6 +199,9 @@ interface PageData {
 	getPublicContentBySeoUrl: { id: number; translations: (Translation & { message: string | null })[] | null }
 }
 
+// Allow this page to wait for the CMS on each request (Next 16 Cache Components)
+export const instant = false
+
 const ContentPage = async ({ params }: { params: Promise<{ slug: string }> }) => {
 	const { slug } = await params
 	let data: PageData
@@ -247,6 +253,9 @@ Run `npm run dev`, open `http://localhost:3000`, and you see your posts. Deploy 
 project (you can do it yourself on a developer project we do not host, see
 [Cache revalidation](/guides/revalidation#domains)), and every save refreshes the cached pages. How that works:
 [Cache revalidation](/guides/revalidation).
+
+On your host, set the same environment variables (`CMS_API_URL`, `CMS_PROJECT_TOKEN`, `REVALIDATE_TOKEN`) for the build
+and the running site. The home page reads the API during `next build`, so the build fails without them.
 
 ### Astro
 
