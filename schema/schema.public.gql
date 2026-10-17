@@ -564,6 +564,16 @@ enum MainMailDtoTemplate {
   shelter_adoption_request_staff
   shelter_adoption_status
   shelter_newsletter
+  shop_low_stock
+  shop_new_order
+  shop_order_cancelled
+  shop_order_confirmation
+  shop_order_shipped
+  shop_paid_after_cancel
+  shop_payment_received
+  shop_ready_for_pickup
+  shop_withdrawal_received
+  shop_withdrawal_request
   welcome
 }
 
