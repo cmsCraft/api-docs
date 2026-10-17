@@ -227,7 +227,7 @@ query ShopOrder($token: String!) {
 }
 ```
 
-- An older lookup, `publicOrderByNumber`, still exists; use `publicShopOrder(token)`.
+- An older lookup, `publicOrderByNumber`, is deprecated and will be removed after 2027-01-15; use `publicShopOrder(token)`.
 - `status` is `Pending`, `Paid`, `Processing`, `Shipped`, `Delivered`, `Cancelled` or `Refunded`.
 - `bankTransfer` is set only while the order is `Pending` and paid by bank transfer.
 - `cancelAt` is when an unpaid order will be cancelled automatically.

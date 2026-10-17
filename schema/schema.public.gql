@@ -561,6 +561,7 @@ enum MainMailDtoTemplate {
   newsletter_welcome
   password_reset
   project_invitation
+  request_decision
   schedule_registration
   schedule_registration_reminder
   schedule_registration_staff
@@ -1391,7 +1392,7 @@ type Query {
   """
   Look up your own order: the order number plus the email it was placed with
   """
-  publicOrderByNumber(email: String!, orderNumber: String!): PublicOrder!
+  publicOrderByNumber(email: String!, orderNumber: String!): PublicOrder! @deprecated(reason: "Use publicShopOrder(token). Without the order link, a customer can still withdraw with requestShopOrderWithdrawal(orderNumber, email). Removed after 2027-01-15.")
 
   """Get product by slug or seoUrl"""
   publicProduct(slug: String!): ProductType!
