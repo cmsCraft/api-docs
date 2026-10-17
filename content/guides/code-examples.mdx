@@ -1,0 +1,169 @@
+---
+title: Code examples
+---
+
+# Code examples
+
+Every example runs on a server and reads the token from the environment (`CMS_PROJECT_TOKEN`), so the token never
+reaches the browser ([why](/auth#call-the-api-from-your-server)).
+
+The query used throughout:
+
+```graphql
+query ProjectName {
+  publicProjectInfo { name }
+}
+```
+
+## curl
+
+```bash
+curl https://main-craft.cms-craft.com/graphql/public \
+  -H 'Content-Type: application/json' \
+  -H "project-auth: $CMS_PROJECT_TOKEN" \
+  -d '{"query":"query ProjectName { publicProjectInfo { name } }"}'
+```
+
+Queries also work with `GET`:
+
+```bash
+curl -G https://main-craft.cms-craft.com/graphql/public \
+  -H "project-auth: $CMS_PROJECT_TOKEN" \
+  --data-urlencode 'query={ publicProjectInfo { name } }'
+```
+
+## TypeScript (Node 18+, Bun, Deno)
+
+```ts
+const API_URL = 'https://main-craft.cms-craft.com/graphql/public'
+
+export const cmsQuery = async <T>(query: string, variables: Record<string, unknown> = {}): Promise<T> => {
+	const response = await fetch(API_URL, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'project-auth': process.env.CMS_PROJECT_TOKEN ?? ''
+		},
+		body: JSON.stringify({ query, variables })
+	})
+	const { data, errors } = (await response.json()) as { data?: T; errors?: { message: string }[] }
+	if (errors?.length) throw new Error(errors.map((error) => error.message).join('; '))
+	if (!data) throw new Error(`cms-craft answered HTTP ${response.status} without data`)
+	return data
+}
+
+const { publicProjectInfo } = await cmsQuery<{ publicProjectInfo: { name: string } }>(
+	'query ProjectName { publicProjectInfo { name } }'
+)
+console.log(publicProjectInfo.name)
+```
+
+For typed operations, generate the types from the schema: [Schema & types](/schema).
+
+## Next.js (App Router)
+
+In a server component, with the response cached until cms-craft [revalidates](/guides/revalidation) the `project`
+tag:
+
+```tsx filename="app/layout.tsx"
+import type { ReactNode } from 'react'
+
+const getProjectName = async (): Promise<string> => {
+	const response = await fetch(process.env.CMS_API_URL as string, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json', 'project-auth': process.env.CMS_PROJECT_TOKEN as string },
+		body: JSON.stringify({ query: 'query ProjectName { publicProjectInfo { name } }' }),
+		cache: 'force-cache',
+		next: { tags: ['project'] }
+	})
+	const { data } = await response.json()
+	return data.publicProjectInfo.name
+}
+
+const RootLayout = async ({ children }: { children: ReactNode }) => (
+	<html lang="en">
+		<body>
+			<header>{await getProjectName()}</header>
+			{children}
+		</body>
+	</html>
+)
+
+export default RootLayout
+```
+
+A form handled by a server action, so the mutation and the token stay on the server:
+
+```tsx filename="app/contact/page.tsx"
+const sendContact = async (formData: FormData) => {
+	'use server'
+	const response = await fetch(process.env.CMS_API_URL as string, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json', 'project-auth': process.env.CMS_PROJECT_TOKEN as string },
+		body: JSON.stringify({
+			query: 'mutation Contact($mailInput: MailInputType!) { sendContactRequest(mailInput: $mailInput) }',
+			variables: {
+				mailInput: {
+					mailLanguage: 'en',
+					template: 'contact',
+					templateData: {
+						name: formData.get('name'),
+						email: formData.get('email'),
+						message: formData.get('message')
+					}
+				}
+			}
+		})
+	})
+	const { errors } = await response.json()
+	if (errors?.length) throw new Error(errors[0].message)
+}
+
+const ContactPage = () => (
+	<form action={sendContact}>
+		<input name="name" required />
+		<input name="email" type="email" required />
+		<textarea name="message" required />
+		<button type="submit">Send</button>
+	</form>
+)
+
+export default ContactPage
+```
+
+The full starter, with pages, tags and the `/api/revalidate` route, is in the [Quickstart](/getting-started).
+
+## Astro
+
+```astro filename="src/components/SiteName.astro"
+---
+const response = await fetch(import.meta.env.CMS_API_URL, {
+	method: 'POST',
+	headers: { 'Content-Type': 'application/json', 'project-auth': import.meta.env.CMS_PROJECT_TOKEN },
+	body: JSON.stringify({ query: 'query ProjectName { publicProjectInfo { name } }' })
+})
+const { data } = await response.json()
+---
+
+<span>{data.publicProjectInfo.name}</span>
+```
+
+## Apollo Client (server side)
+
+If you already use Apollo Client, create the client on the server only (for example in a React Server Component
+helper) and pass the token from the environment:
+
+```ts filename="lib/apollo.ts"
+import { ApolloClient, HttpLink, InMemoryCache } from '@apollo/client'
+
+export const createCmsClient = () =>
+	new ApolloClient({
+		link: new HttpLink({
+			uri: process.env.CMS_API_URL,
+			headers: { 'project-auth': process.env.CMS_PROJECT_TOKEN ?? '' }
+		}),
+		cache: new InMemoryCache()
+	})
+```
+
+Do not create it in a client component: the token would be shipped to the browser, where every visitor can read it.

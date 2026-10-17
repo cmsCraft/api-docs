@@ -1,0 +1,106 @@
+---
+title: Cache revalidation
+---
+
+# Cache revalidation
+
+Cache your API responses for as long as you like: when an editor saves something in the admin panel, cms-craft calls
+your site and tells it which cached data changed. Your site drops that data and fetches it again on the next visit.
+
+## The request cms-craft sends
+
+After every save, cms-craft sends one request to **every domain added to the project** in the admin panel:
+
+```http
+POST https://<domain>/api/revalidate
+Content-Type: application/json
+x-revalidate-token: <the project's revalidation secret>
+
+{"tags":["content","content-42","content-slug-about-us"]}
+```
+
+The body has this shape (`paths` is part of the format but is not sent today):
+
+```ts
+interface RevalidateRequest {
+	tags: string[]
+	paths?: string[]
+}
+```
+
+## Tags
+
+For a change to one record, the tags are the record's type, `<type>-<id>` and, when it has one, `<type>-slug-<slug>`:
+
+| Saved | Tags sent |
+|---|---|
+| A page or post | `content`, `content-42`, `content-slug-about-us` (the slug is the content's SEO URL) |
+| A product | `product`, `product-7`, `product-slug-mini-excavator` |
+| A category | `category`, `category-3`, `category-slug-excavators` |
+| A pet | `pet`, `pet-12`, `pet-slug-rex` |
+| Tags on contents | `tag` |
+| Project settings (name, languages, domains, images…) | `project`, `project-5` |
+
+Other types you may receive: `author`, `newsletter`, `file`, `donation_config`, `slot`, `project`, `page_manifest`,
+`site`, `project_invitation`. Some changes send only the bare type (for example `author`, or `content` when an
+author is renamed). When a whole site is refreshed by hand, every type is sent at once. Ignore tags you do not use.
+
+So tag your cached fetches the same way: a list of posts with `content` (and `tag` if you filter by tags), a single
+page with `content-slug-<seoUrl>` or `content-<id>`, a product page with `product-slug-<slug>`.
+
+## What your endpoint must do
+
+- **Check the secret.** Compare `x-revalidate-token` with the project's revalidation secret; answer 401 if it differs.
+- **Answer with JSON `{ "success": true }`** and a 2xx status. Anything else (another body, an HTML page, a
+  non-2xx status) is counted as a failed refresh.
+- **Answer within 5 seconds.** Do the slow work (a rebuild, a CDN purge) after answering, or keep it short.
+- **Do not redirect.** Redirects are not followed and count as a failure, so `/api/revalidate` must answer on exactly
+  the domain stored in the project (watch out for apex → `www` redirects and trailing-slash rules).
+- **Serve it over HTTPS** on a public address. Domains are called as `https://<domain>`.
+
+Each save sends the request once and never retries: if your site was down or answered with an error, that refresh is
+lost and the cached data stays until the next save that touches it. Do not cache forever if you cannot afford that;
+add a time-based expiry as a safety net.
+
+## The revalidation secret
+
+It is in the admin panel under **Settings → Integrations → Revalidation secret** (click **Reveal secret**). The same
+people who can see the [API token](/auth#getting-the-token) can see it. Put it in your site's environment as
+`REVALIDATE_TOKEN`.
+
+It is separate from the [API token](/auth): regenerating one does not change the other. If you regenerate the
+revalidation secret, every site stops refreshing until its `REVALIDATE_TOKEN` is updated and the site is
+redeployed.
+
+## Next.js App Router
+
+Cache your fetches with tags (`cache: 'force-cache'` plus `next: { tags }`, as in the [Quickstart](/getting-started)),
+then add this route handler:
+
+```ts filename="app/api/revalidate/route.ts"
+import { revalidateTag } from 'next/cache'
+import { type NextRequest, NextResponse } from 'next/server'
+
+export const POST = async (request: NextRequest) => {
+	const secret = process.env.REVALIDATE_TOKEN
+	if (!secret || request.headers.get('x-revalidate-token') !== secret) {
+		return NextResponse.json({ success: false, message: 'invalid token' }, { status: 401 })
+	}
+
+	const body = (await request.json().catch(() => null)) as { tags?: unknown } | null
+	const rawTags = body?.tags
+	const tags = Array.isArray(rawTags) ? rawTags.filter((tag): tag is string => typeof tag === 'string') : []
+	for (const tag of tags) revalidateTag(tag, 'max')
+
+	return NextResponse.json({ success: true, revalidated: tags })
+}
+```
+
+`revalidateTag(tag, 'max')` marks the data stale: the next visitor still gets the cached page while Next.js fetches
+the fresh data in the background, and the visit after that sees the change. Use `revalidateTag(tag, { expire: 0 })`
+if the very next visit must show the change.
+
+## Other frameworks
+
+Any server that answers `POST /api/revalidate` as described above works: purge your cache or CDN for the tags you
+receive, or trigger a rebuild of a static site, then reply `{ "success": true }`.

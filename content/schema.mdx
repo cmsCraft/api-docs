@@ -1,0 +1,78 @@
+---
+title: Schema & types
+---
+
+# Schema & types
+
+## Download the schema
+
+The public schema, as SDL, is at:
+
+**[https://docs.cms-craft.com/schema.graphql](https://docs.cms-craft.com/schema.graphql)**
+
+It is updated from the API's published public schema when the API changes. The [API Reference](/reference) on this
+site is generated from the same file. Introspection is disabled on the live
+endpoint, so this file is how tools learn the schema.
+
+```bash
+curl -o schema.graphql https://docs.cms-craft.com/schema.graphql
+```
+
+Custom scalars: `DateTime` is an ISO 8601 string, `JSON` is any JSON value.
+
+## Generate TypeScript types
+
+With [GraphQL Code Generator](https://the-guild.dev/graphql/codegen), write your operations in `.graphql` files and
+generate a type for each of them.
+
+```bash
+npm install -D @graphql-codegen/cli @graphql-codegen/typescript @graphql-codegen/typescript-operations
+```
+
+```ts filename="codegen.ts"
+import type { CodegenConfig } from '@graphql-codegen/cli'
+
+const config: CodegenConfig = {
+	schema: 'https://docs.cms-craft.com/schema.graphql',
+	documents: ['src/**/*.graphql'],
+	generates: {
+		'src/generated/cms.ts': {
+			plugins: ['typescript', 'typescript-operations'],
+			config: {
+				enumsAsTypes: true,
+				scalars: { DateTime: 'string', JSON: 'unknown' }
+			}
+		}
+	}
+}
+
+export default config
+```
+
+An operation to generate types for:
+
+```graphql filename="src/queries/post.graphql"
+query PostBySeoUrl($seoUrl: String!) {
+  getPublicContentBySeoUrl(seoUrl: $seoUrl) {
+    id
+    publishDate
+    translations {
+      language { locale }
+      title
+      description
+    }
+  }
+}
+```
+
+Run `npx graphql-codegen`. `src/generated/cms.ts` then exports `PostBySeoUrlQuery` and `PostBySeoUrlQueryVariables`,
+which you pass to your fetch helper (for example `cmsQuery<PostBySeoUrlQuery>(…)` from the
+[Quickstart](/getting-started)). Re-run it when the [Changelog](/changelog) announces a schema change.
+
+## Stability policy
+
+- **Breaking changes are announced in the [Changelog](/changelog)** before they reach production.
+- **Nothing is removed without warning.** A field, argument or type that is going away is first marked `@deprecated`
+  in the schema (with the reason and the replacement) and keeps working for at least **90 days** before it is removed.
+- **Additions are not breaking.** New types, new fields and new optional arguments can appear at any time. Do not
+  rely on the exact set of fields of a type or the values of an enum being fixed.

@@ -1,0 +1,38 @@
+---
+title: Pagination
+---
+
+# Pagination
+
+The paginated list queries take a `PageOptionsInput` and return a page object with `data` (the items) and `meta`:
+
+| Query | Argument name |
+|---|---|
+| `getPublicContentsByTags` | `pageOptionsDto` |
+| `publicProducts` | `pageOptionsDto` |
+| `publicCategories` | `pageOptionsDto` |
+| `projectContents` | `pageOptionInput` |
+
+```graphql
+query Products($page: Int!) {
+  publicProducts(pageOptionsDto: { page: $page, limit: 20, order: DESC }) {
+    data { id slug }
+    meta { page take itemCount pageCount hasNextPage hasPreviousPage }
+  }
+}
+```
+
+`PageOptionsInput` fields, all optional:
+
+- `page`: 1-based page number, default `1`, minimum `1`.
+- `limit`: page size, default `10`, from `1` to **200**. A larger value fails with `BAD_REQUEST`.
+- `order`: `ASC` (default) or `DESC`. For contents it orders by publish date, so pass `DESC` for "newest first".
+
+`meta` (`PageMetaDto`):
+
+- `page`: the page you asked for; `take`: the page size used.
+- `itemCount`: total number of matching items; `pageCount`: total number of pages.
+- `hasNextPage` / `hasPreviousPage`: loop until `hasNextPage` is `false`.
+
+Other lists are not paginated this way: `getPublicFeaturedPets`, `getPublicPetsByCategory` and the connection queries
+take a `limit` argument, and `getPublicPets` takes `limit` and `offset` inside its `filterInput`.

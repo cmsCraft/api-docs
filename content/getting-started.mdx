@@ -1,0 +1,313 @@
+---
+title: Quickstart
+---
+
+# Quickstart
+
+From an API token to a working site in four steps. Step 4 is a complete, copyable starter for **Next.js (App Router)**
+and for **Astro**; there is no separate starter repository.
+
+Free during beta. Paid plans will follow; we will announce pricing and give notice before any charge.
+
+## 1. Get your project's API token
+
+Access is granted by our team today: e-mail support@cms-craft.com, and we set up a developer project that you own.
+Then, in the cms-craft admin panel, open the project, go to **Settings → Integrations → API Token** and click
+**Reveal token**. Details: [Authentication](/auth#getting-the-token).
+
+Put it in your server's environment, never in browser code:
+
+```bash filename=".env.local"
+CMS_API_URL=https://main-craft.cms-craft.com/graphql/public
+CMS_PROJECT_TOKEN=paste-the-api-token-here
+# Settings → Integrations → Revalidation secret (used in step 4)
+REVALIDATE_TOKEN=paste-the-revalidation-secret-here
+```
+
+## 2. Send your first query
+
+```bash
+curl https://main-craft.cms-craft.com/graphql/public \
+  -H 'Content-Type: application/json' \
+  -H "project-auth: $CMS_PROJECT_TOKEN" \
+  -d '{"query":"{ publicProjectInfo { name mainLanguage { locale } availableLanguages { locale } } }"}'
+```
+
+The same query, formatted:
+
+```graphql
+query ProjectInfo {
+  publicProjectInfo {
+    name
+    mainLanguage { locale }
+    availableLanguages { locale }
+  }
+}
+```
+
+A successful response looks like this:
+
+```json
+{
+  "data": {
+    "publicProjectInfo": {
+      "name": "My Project",
+      "mainLanguage": { "locale": "en" },
+      "availableLanguages": [{ "locale": "en" }, { "locale": "cs" }]
+    }
+  }
+}
+```
+
+If the token is missing or wrong you get `"message": "no token"` or `"message": "not matched token"` with the code
+`UNAUTHENTICATED`; see [Errors & limits](/errors).
+
+## 3. Know where to call it from
+
+Call the API **from your server**: server components, SSR, route handlers, server actions or build scripts. The API
+answers browsers too, but a token in browser code is visible to every visitor
+([why](/auth#call-the-api-from-your-server)). Keep it in server environment variables.
+
+## 4. A complete starter
+
+The starter lists the posts tagged `blog`, renders one page by its SEO URL, and refreshes its cache when an editor
+saves. Tag a few contents `blog` in the admin panel to see them listed.
+
+### Next.js (App Router)
+
+Four files on top of `create-next-app` (TypeScript, App Router, the `@/*` import alias), plus `.env.local` from step 1.
+
+```ts filename="lib/cms.ts"
+// Server-only helper for the cms-craft public API. Never import it from a 'use client' file.
+
+interface CmsErrorEntry {
+	message: string
+	extensions?: { code?: string }
+}
+
+export class CmsError extends Error {
+	constructor(readonly errors: CmsErrorEntry[]) {
+		super(`cms-craft: ${errors.map((error) => error.message).join('; ')}`)
+	}
+
+	get isNotFound(): boolean {
+		return this.errors.some((error) => error.extensions?.code === 'NOT_FOUND')
+	}
+}
+
+export const cmsQuery = async <T>(
+	query: string,
+	{ variables = {}, tags = [] }: { variables?: Record<string, unknown>; tags?: string[] } = {}
+): Promise<T> => {
+	const response = await fetch(process.env.CMS_API_URL as string, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'project-auth': process.env.CMS_PROJECT_TOKEN as string
+		},
+		body: JSON.stringify({ query, variables }),
+		// Cached until cms-craft tells /api/revalidate that one of these tags changed.
+		cache: 'force-cache',
+		next: { tags }
+	})
+	const body = (await response.json()) as { data?: T | null; errors?: CmsErrorEntry[] }
+	if (body.errors?.length) throw new CmsError(body.errors)
+	if (!body.data) throw new CmsError([{ message: `HTTP ${response.status}` }])
+	return body.data
+}
+
+export interface Translation {
+	language: { locale: string }
+	title: string
+	description: string | null
+}
+
+// Pick the visitor's language, fall back to the first translation.
+export const pickTranslation = <T extends Translation>(translations: T[] | null, locale: string): T | undefined =>
+	translations?.find((translation) => translation.language.locale === locale) ?? translations?.[0]
+```
+
+```tsx filename="app/page.tsx"
+import Link from 'next/link'
+import { cmsQuery, pickTranslation, type Translation } from '@/lib/cms'
+
+const POSTS_QUERY = `
+	query Posts {
+		getPublicContentsByTags(
+			getContentByTagsInput: { tags: ["blog"] }
+			pageOptionsDto: { page: 1, limit: 20, order: DESC }
+		) {
+			data {
+				id
+				seoUrl
+				publishDate
+				translations { language { locale } title description }
+			}
+		}
+	}
+`
+
+interface PostsData {
+	getPublicContentsByTags: {
+		data: { id: number; seoUrl: string | null; publishDate: string; translations: Translation[] | null }[]
+	}
+}
+
+const HomePage = async () => {
+	// `content` is sent whenever any content is saved, `tag` when tags change.
+	const { getPublicContentsByTags } = await cmsQuery<PostsData>(POSTS_QUERY, { tags: ['content', 'tag'] })
+
+	return (
+		<main>
+			<h1>Blog</h1>
+			<ul>
+				{getPublicContentsByTags.data.map((post) => {
+					const translation = pickTranslation(post.translations, 'en')
+					return (
+						<li key={post.id}>
+							{post.seoUrl ? <Link href={`/${post.seoUrl}`}>{translation?.title}</Link> : translation?.title}
+							<p>{translation?.description}</p>
+						</li>
+					)
+				})}
+			</ul>
+		</main>
+	)
+}
+
+export default HomePage
+```
+
+```tsx filename="app/[slug]/page.tsx"
+import { notFound } from 'next/navigation'
+import { CmsError, cmsQuery, pickTranslation, type Translation } from '@/lib/cms'
+
+const PAGE_QUERY = `
+	query Page($seoUrl: String!) {
+		getPublicContentBySeoUrl(seoUrl: $seoUrl) {
+			id
+			translations { language { locale } title description message }
+		}
+	}
+`
+
+interface PageData {
+	getPublicContentBySeoUrl: { id: number; translations: (Translation & { message: string | null })[] | null }
+}
+
+const ContentPage = async ({ params }: { params: Promise<{ slug: string }> }) => {
+	const { slug } = await params
+	let data: PageData
+	try {
+		data = await cmsQuery<PageData>(PAGE_QUERY, {
+			variables: { seoUrl: slug },
+			tags: ['content', `content-slug-${slug}`]
+		})
+	} catch (error) {
+		if (error instanceof CmsError && error.isNotFound) notFound()
+		throw error
+	}
+	const translation = pickTranslation(data.getPublicContentBySeoUrl.translations, 'en')
+
+	return (
+		<main>
+			<h1>{translation?.title}</h1>
+			<p>{translation?.description}</p>
+			{/* `message` is the rich-text body: a Tiptap document as a JSON string. Render it with a Tiptap renderer. */}
+		</main>
+	)
+}
+
+export default ContentPage
+```
+
+```ts filename="app/api/revalidate/route.ts"
+import { revalidateTag } from 'next/cache'
+import { type NextRequest, NextResponse } from 'next/server'
+
+// cms-craft calls this after every save: POST, header x-revalidate-token, body { tags: string[] }.
+export const POST = async (request: NextRequest) => {
+	const secret = process.env.REVALIDATE_TOKEN
+	if (!secret || request.headers.get('x-revalidate-token') !== secret) {
+		return NextResponse.json({ success: false, message: 'invalid token' }, { status: 401 })
+	}
+
+	const body = (await request.json().catch(() => null)) as { tags?: unknown } | null
+	const rawTags = body?.tags
+	const tags = Array.isArray(rawTags) ? rawTags.filter((tag): tag is string => typeof tag === 'string') : []
+	for (const tag of tags) revalidateTag(tag, 'max')
+
+	// cms-craft counts the call as successful only when the answer is JSON with success: true.
+	return NextResponse.json({ success: true, revalidated: tags })
+}
+```
+
+Run `npm run dev`, open `http://localhost:3000`, and you see your posts. Deploy it, add the site's domain to the
+project in the admin panel, and every save refreshes the cached pages. How that works:
+[Cache revalidation](/guides/revalidation).
+
+### Astro
+
+Astro runs a page's frontmatter on the server (at build time for a static site, on every request with an SSR
+adapter), so the token never reaches the browser. Use the same `.env` variables.
+
+```astro filename="src/pages/index.astro"
+---
+const POSTS_QUERY = `
+	query Posts {
+		getPublicContentsByTags(
+			getContentByTagsInput: { tags: ["blog"] }
+			pageOptionsDto: { page: 1, limit: 20, order: DESC }
+		) {
+			data {
+				id
+				seoUrl
+				translations { language { locale } title description }
+			}
+		}
+	}
+`
+
+const response = await fetch(import.meta.env.CMS_API_URL, {
+	method: 'POST',
+	headers: {
+		'Content-Type': 'application/json',
+		'project-auth': import.meta.env.CMS_PROJECT_TOKEN
+	},
+	body: JSON.stringify({ query: POSTS_QUERY })
+})
+const { data, errors } = await response.json()
+if (errors?.length) throw new Error(errors.map((error) => error.message).join('; '))
+
+const posts = data.getPublicContentsByTags.data.map((post) => ({
+	id: post.id,
+	seoUrl: post.seoUrl,
+	translation: post.translations?.find((t) => t.language.locale === 'en') ?? post.translations?.[0]
+}))
+---
+
+<html lang="en">
+	<body>
+		<h1>Blog</h1>
+		<ul>
+			{posts.map((post) => (
+				<li>
+					<a href={`/${post.seoUrl}`}>{post.translation?.title}</a>
+					<p>{post.translation?.description}</p>
+				</li>
+			))}
+		</ul>
+	</body>
+</html>
+```
+
+A statically built Astro site shows new content after its next build. To refresh it on save, answer cms-craft's
+`POST /api/revalidate` (an SSR endpoint, or a small function on your host) by triggering a rebuild, and reply with
+`{ "success": true }`. The request is described in [Cache revalidation](/guides/revalidation).
+
+## Next steps
+
+- [Querying content](/guides/querying-content): pages, posts, products, categories
+- [Form mutations](/guides/mutations): contact form, newsletter, orders
+- [Schema & types](/schema): download the schema and generate TypeScript types
+- [Errors & limits](/errors): error codes, rate limits, query limits

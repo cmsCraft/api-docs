@@ -1,0 +1,64 @@
+---
+title: Localization
+---
+
+# Localization
+
+Each project has a main language and a set of available languages, chosen by the project owner. Ask the project which
+ones it has:
+
+```graphql
+query Languages {
+  publicProjectInfo {
+    mainLanguage { locale label }
+    availableLanguages { locale label }
+  }
+}
+```
+
+## Picking a translation
+
+Translatable records (contents, products, categories, pets, the project itself…) have a `translations` list. Each
+translation names its language; pick the one for the visitor's locale and fall back to the project's main language:
+
+```graphql
+query Page($seoUrl: String!) {
+  getPublicContentBySeoUrl(seoUrl: $seoUrl) {
+    id
+    translations {
+      language { locale }
+      title
+      description
+    }
+  }
+}
+```
+
+```ts
+const pick = <T extends { language: { locale: string } }>(translations: T[], locale: string, mainLocale: string) =>
+	translations.find((t) => t.language.locale === locale) ??
+	translations.find((t) => t.language.locale === mainLocale) ??
+	translations[0]
+```
+
+A record may not have a translation for every language, so always keep a fallback.
+
+## Filtering lists by language
+
+`getPublicContentsByTags` takes a `locale` in its input: it then returns only contents that have a translation in that
+language (their `translations` list still contains every language).
+
+```graphql
+query CzechPosts {
+  getPublicContentsByTags(
+    getContentByTagsInput: { tags: ["blog"], locale: "cs" }
+    pageOptionsDto: { page: 1, limit: 10, order: DESC }
+  ) {
+    data { id seoUrl translations { language { locale } title } }
+  }
+}
+```
+
+A few other operations take a language argument too: `getPublicSchedule(locale)`, `getPublicDonationInfo(locale)` and
+`publicFilterableAttributes(languageId)`. The form mutations take the visitor's `locale` (or `mailLanguage`) so that
+confirmation emails go out in the right language; see [Form mutations](/guides/mutations).

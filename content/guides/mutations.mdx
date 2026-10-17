@@ -1,0 +1,210 @@
+---
+title: Form mutations
+---
+
+# Form mutations
+
+The public API accepts a handful of mutations: the forms a public site needs. They are sent with `POST` (a mutation
+over `GET` is refused with HTTP 405). Most of them need the `project-auth` header, like every other request. Two do
+not: `unsubscribeNewsletter` and `cancelRegistration` take a token from an e-mail link, which identifies the project.
+
+Call them **from your server**: post the visitor's form to your own route handler or server action, validate it there,
+then call the mutation. This keeps your token private ([why](/auth#call-the-api-from-your-server)).
+
+These mutations have low [rate limits](/errors#rate-limits) per IP (5 per minute for most of them). When your server
+makes the call, all your visitors share your server's IP, so add your own spam protection (a captcha, a honeypot field)
+before forwarding a submission.
+
+| Mutation | Needs module | Needs `project-auth` | Rate limit per IP |
+|---|---|---|---|
+| `sendContactRequest` | (none) | yes | 5/min |
+| `subscribeNewsletter` | Newsletter | yes | 5/min |
+| `unsubscribeNewsletter` | (none) | no | 5/min |
+| `createPublicOrder` | Orders | yes | 20/min |
+| `createPublicBooking` | Bookings | yes | 20/min |
+| `submitRegistration` | Scheduling | yes | 5/min |
+| `cancelRegistration` | (none) | no | 5/min |
+| `submitAdoptionRequest` | Pets | yes | 5/min |
+
+## Contact form
+
+The message is emailed to the project's contact recipients (set up in the admin panel).
+
+```graphql
+mutation Contact($mailInput: MailInputType!) {
+  sendContactRequest(mailInput: $mailInput)
+}
+```
+
+```json
+{
+  "mailInput": {
+    "mailLanguage": "en",
+    "template": "contact",
+    "subject": "Quote request",
+    "templateData": { "name": "Jane Doe", "email": "jane@example.com", "message": "Hello!" }
+  }
+}
+```
+
+- `templateData` must have `name` (up to 200 characters), `email` (a valid address) and `message` (up to 5,000
+  characters). Other keys are ignored. Invalid data fails with `BAD_REQUEST`, for example
+  `Invalid templateData — email: Invalid email address`.
+- `template` is required by the schema; send `contact`. The project's contact template is always used.
+- `mailLanguage` is `cs`, `en` or `ru`. `subject` is optional: the email's subject is `<project name> — <subject>`
+  (up to 120 characters of yours).
+- The deprecated `to` field is ignored: mail goes only to the project's contact recipients. A project without any
+  fails with `CONTACT_RECIPIENTS_NOT_CONFIGURED`.
+- Returns `true`.
+
+## Newsletter
+
+Find the newsletter's id, then subscribe an address:
+
+```graphql
+query Newsletters {
+  getPublicNewsletters { id name slug description }
+}
+```
+
+```graphql
+mutation Subscribe($input: SubscribeNewsletterInput!) {
+  subscribeNewsletter(input: $input) {
+    id
+    status
+  }
+}
+```
+
+```json
+{ "input": { "email": "jane@example.com", "locale": "en", "newsletterId": 1 } }
+```
+
+Every newsletter email carries cms-craft's own unsubscribe link, so you do not need an unsubscribe page. If you build
+one anyway, `unsubscribeNewsletter` takes the subscriber's unsubscribe token and returns a `Boolean`:
+
+```graphql
+mutation Unsubscribe($token: String!) {
+  unsubscribeNewsletter(token: $token)
+}
+```
+
+## Order
+
+A guest order. Use the product ids and the currency id from your product query
+(`prices { currencyEntity { id } }`).
+
+```graphql
+mutation Order($input: CreatePublicOrderInput!) {
+  createPublicOrder(input: $input) {
+    success
+    orderNumber
+    totalAmount
+    message
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "currencyId": 1,
+    "customerName": "Jane Doe",
+    "customerEmail": "jane@example.com",
+    "customerPhone": "+420 600 000 000",
+    "items": [{ "productId": 42, "quantity": 2 }],
+    "shippingStreet": "Main Street 1",
+    "shippingCity": "Prague",
+    "shippingPostalCode": "11000",
+    "shippingCountry": "CZ"
+  }
+}
+```
+
+The customer can look the order up later with `publicOrderByNumber(orderNumber, email)`.
+
+## Booking
+
+A rental booking for a bookable product. Check availability first with `publicCheckAvailability`, or show the calendar
+with `publicProductBookedDates`.
+
+```graphql
+mutation Book($input: CreatePublicBookingInput!) {
+  createPublicBooking(input: $input) {
+    success
+    referenceCode
+    totalPrice
+    depositAmount
+    message
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "productId": 42,
+    "currencyId": 1,
+    "quantity": 1,
+    "startDate": "2026-11-02T08:00:00.000Z",
+    "endDate": "2026-11-04T18:00:00.000Z",
+    "customerName": "Jane Doe",
+    "customerEmail": "jane@example.com"
+  }
+}
+```
+
+## Event registration
+
+Sign a visitor up for a slot of a schedule. The slot ids come from
+`getPublicSchedule(slug) { activities { slots { id availableSeats isFull } } }`.
+
+```graphql
+mutation Register($input: SubmitRegistrationInput!) {
+  submitRegistration(input: $input) {
+    status
+    waitlistPosition
+  }
+}
+```
+
+```json
+{ "input": { "slotId": 7, "requesterName": "Jane Doe", "email": "jane@example.com", "locale": "en" } }
+```
+
+`status` is `CONFIRMED`, `PENDING`, `WAITLISTED` and so on. The confirmation email links back to **your site**:
+`https://<project main domain>/<locale>/<cancel path>?token=<cancel token>`, where the cancel path is set per schedule
+in the admin panel (default `volunteer/cancel`). Build that page: it reads `token` from the query string and calls
+`cancelRegistration` from your server.
+
+```graphql
+mutation CancelRegistration($token: String!) {
+  cancelRegistration(token: $token)
+}
+```
+
+## Adoption request
+
+```graphql
+mutation Adopt($input: PublicCreateAdoptionRequestInput!) {
+  submitAdoptionRequest(input: $input) {
+    id
+    status
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "petId": 12,
+    "requesterName": "Jane Doe",
+    "email": "jane@example.com",
+    "phone": "+420 600 000 000",
+    "message": "We have a garden and another dog.",
+    "locale": "en"
+  }
+}
+```
+
+`isPetAvailableForAdoption(petId)` tells you beforehand whether the pet can still be requested.

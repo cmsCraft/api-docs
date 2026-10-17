@@ -1,0 +1,159 @@
+---
+title: Errors & limits
+---
+
+# Errors & limits
+
+## How errors arrive
+
+The API follows the GraphQL convention: errors come back in an `errors` array, each with a `message` and an
+`extensions.code`. Branch on `extensions.code` (and, for the cases below that say so, on the message), not on the
+HTTP status.
+
+- **The request was rejected before running** (a field that does not exist, a query that is too deep or too complex,
+  malformed variables): HTTP **400**, and the body has no `data` key.
+- **The request ran but a field failed** (missing token, module off, invalid form input…): HTTP **200**, `data` is
+  `null` (or partial), and the error carries the `path` of the field that failed.
+- **Two exceptions:** a [rate limit](#rate-limits) answers HTTP **429**, and a suspended project answers HTTP **403**.
+  The body has the same shape as above.
+
+## Error reference
+
+| `extensions.code` | HTTP | When |
+|---|---|---|
+| `UNAUTHENTICATED` | 200 | `project-auth` is missing (`no token`), or is not a valid token or matches no project (`not matched token`). |
+| `MODULE_DISABLED` | 200 | The operation belongs to a feature the project has not switched on. |
+| `BAD_REQUEST` | 200 | Input failed validation (for example a page `limit` over 200, or an invalid contact form). |
+| `NOT_FOUND` | 200 | The record you asked for does not exist or is not published. |
+| `CONFLICT` | 200 | The request clashes with existing data, for example an address that is already subscribed. |
+| `CONTACT_RECIPIENTS_NOT_CONFIGURED` | 200 | `sendContactRequest` on a project with no contact recipients set up. |
+| `INTERNAL_SERVER_ERROR` | 200 | An unexpected error on our side. The message is `Internal server error`. |
+| `TOO_MANY_REQUESTS` | 429 | You hit a [rate limit](#rate-limits). Wait for the seconds in `Retry-After`. |
+| `PROJECT_SUSPENDED` | 403 | The token is valid, but the project is suspended. Retrying does not help: contact support@cms-craft.com. |
+| `GRAPHQL_VALIDATION_FAILED` | 400 | Unknown field or argument, [depth limit](#query-limits), or an introspection query. |
+| `BAD_USER_INPUT` | 400 | A variable is missing or has the wrong type. |
+| `QUERY_TOO_COMPLEX` | 400 | The query is over the [complexity limit](#query-limits). |
+| `BAD_REQUEST` | 405 | A mutation sent with `GET` (mutations need `POST`). |
+
+### Examples
+
+Missing token:
+
+```json
+{
+  "errors": [
+    {
+      "message": "no token",
+      "locations": [{ "line": 1, "column": 3 }],
+      "path": ["publicProjectInfo"],
+      "extensions": { "code": "UNAUTHENTICATED" }
+    }
+  ],
+  "data": null
+}
+```
+
+A wrong, malformed or regenerated token gives the same shape with `"message": "not matched token"`. So does a new
+token in the first 2 seconds after you regenerate it ([Authentication](/auth#regenerating-the-token)).
+
+Module not enabled:
+
+```json
+{
+  "errors": [
+    {
+      "message": "Module \"ORDERS\" is not enabled for this project",
+      "path": ["createPublicOrder"],
+      "extensions": { "code": "MODULE_DISABLED", "moduleType": "ORDERS" }
+    }
+  ],
+  "data": null
+}
+```
+
+Not found (for example `getPublicContentBySeoUrl` with an unknown URL):
+
+```json
+{
+  "errors": [
+    {
+      "message": "Content not found",
+      "path": ["getPublicContentBySeoUrl"],
+      "extensions": { "code": "NOT_FOUND" }
+    }
+  ],
+  "data": null
+}
+```
+
+Unknown field:
+
+```json
+{
+  "errors": [
+    {
+      "message": "Cannot query field \"usersFindAll\" on type \"Query\".",
+      "locations": [{ "line": 1, "column": 3 }],
+      "extensions": { "code": "GRAPHQL_VALIDATION_FAILED" }
+    }
+  ]
+}
+```
+
+## Rate limits
+
+Free during beta. Paid plans will follow; we will announce pricing and give notice before any charge.
+We monitor usage during the beta, and limits may change with notice in the [changelog](/changelog).
+
+Requests are counted **per operation** (each root field of a query counts on its own), over a **60-second window**.
+The numbers below are the current defaults:
+
+| Operations | Limit per minute |
+|---|---|
+| Most queries | 200 (per API token or per IP, see below) |
+| `publicProducts`, `publicCategories`, `publicCategoryTree`, `getPublicPets`, `sitemapData`, `publicConnectionItems`, `publicConnectionSchedule` | 30 per IP |
+| `createPublicOrder`, `createPublicBooking` | 20 per IP |
+| `sendContactRequest`, `subscribeNewsletter`, `unsubscribeNewsletter`, `submitRegistration`, `cancelRegistration`, `submitAdoptionRequest`, `publicOrderByNumber` | 5 per IP |
+| `publicBookingByReference` | 5 per IP, and 60 per API token |
+
+The 200-per-minute limit is counted per API token when the project is a developer project and cms-craft does not
+host its site (the usual case if you build your own frontend). Otherwise it is counted per client IP address. The
+other limits are always counted per IP.
+
+When you go over, the response has HTTP **429**, a `Retry-After` header with the number of seconds to wait, and this
+error:
+
+```json
+{
+  "errors": [
+    {
+      "message": "Too many requests",
+      "locations": [{ "line": 1, "column": 12 }],
+      "path": ["cancelRegistration"],
+      "extensions": { "code": "TOO_MANY_REQUESTS" }
+    }
+  ],
+  "data": null
+}
+```
+
+Every response carries the counters as headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+(seconds), plus a suffixed set for the operation's group, for example `X-RateLimit-Limit-read`.
+
+What this means in practice:
+
+- **Your server is one IP.** When your site calls the API from its server, every visitor shares that server's
+  per-IP limits. A contact form handled by your server allows 5 submissions per minute for the whole site; cache
+  reads (the [Quickstart](/getting-started) caches every query until the content changes) instead of querying per
+  visit.
+- **Builds count too.** A static build that renders hundreds of pages one query each can hit the 200-per-minute
+  limit. Prefer list queries over one query per page, limit build concurrency, and retry after `Retry-After`.
+
+## Query limits
+
+- **Depth:** at most **10** levels of nesting. Deeper queries fail with `GRAPHQL_VALIDATION_FAILED`:
+  `'MyQuery' exceeds maximum operation depth of 10`.
+- **Complexity:** at most **1000** points per request. Every selected field costs 1 point, and some list queries
+  (such as `publicProducts`, `publicCategories`, `sitemapData`) add a fixed 10 to 50. Over that, `QUERY_TOO_COMPLEX`:
+  `Query complexity 1200 exceeds maximum allowed complexity 1000`. Ask only for the fields you render.
+- **Introspection** is disabled; use the [downloadable schema](/schema).

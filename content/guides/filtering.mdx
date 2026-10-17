@@ -1,0 +1,69 @@
+---
+title: Filtering products
+---
+
+# Filtering products
+
+Product queries need the project's products module.
+
+## The `where` argument
+
+`publicProducts` takes an optional `where: PublicProductsWhereInput`. Every field is optional and they combine:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `categoryId`, `categorySlug`, `categoryPath` | `Int`, `String`, `String` | Products in that category |
+| `search` | `String` | Text search in the product name and description |
+| `minPrice`, `maxPrice` | `Float` | Price range (sell price, or rent price per day for rentals) |
+| `isFeatured`, `isSellable`, `isBookable` | `Boolean` | Only featured / sellable / bookable products |
+| `slugs` | `[String!]` | Only these products |
+| `attributes` | `[AttributeFilterInput!]` | Attribute filters, see below |
+
+```graphql
+query Excavators {
+  publicProducts(
+    pageOptionsDto: { page: 1, limit: 24 }
+    where: { categorySlug: "excavators", maxPrice: 250, isBookable: true }
+  ) {
+    data { id slug translations { language { locale } name } }
+    meta { itemCount hasNextPage }
+  }
+}
+```
+
+## Attribute filters
+
+Projects define their own product attributes (weight, capacity, colour…). List the ones that can be filtered on, to
+build your filter UI:
+
+```graphql
+query Filters {
+  publicFilterableAttributes {
+    key
+    label
+    unit
+    type
+    inputType
+    options
+  }
+}
+```
+
+`key` is the stable identifier, `label` and `unit` are for display, and `options` is a JSON value with the type's
+settings (for example a minimum and maximum, or the list of choices). Pass `languageId` (the `id` of a language from
+`publicProjectInfo { availableLanguages { id locale } }`) to get the labels in that language.
+
+Then filter by attribute key and the accepted values (always strings):
+
+```graphql
+query Filtered {
+  publicProducts(
+    pageOptionsDto: { page: 1, limit: 24 }
+    where: { attributes: [{ attributeKey: "capacity", values: ["2", "3"] }] }
+  ) {
+    data { id slug attributes }
+  }
+}
+```
+
+Categories have their own `where` on `publicCategories`: `parentId`, `parentSlug`, `rootOnly` and `isPage`.

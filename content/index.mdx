@@ -1,0 +1,29 @@
+---
+title: cms-craft Public API
+---
+
+# cms-craft Public API
+
+cms-craft is a multi-tenant headless CMS. Its **public GraphQL API** lets you build your own frontend on top of one
+cms-craft project: you read the project's published content (pages, blog posts, products, categories, pets, schedules
+and more) and submit a few public forms (contact requests, newsletter sign-ups, orders, bookings, event registrations,
+adoption requests).
+
+It is meant for freelancers and small agencies who build a client's site with the framework of their choice (Next.js,
+Astro, Nuxt, SvelteKit, a static site generator…) while the client edits the content in the cms-craft admin panel.
+
+- **Endpoint:** `https://main-craft.cms-craft.com/graphql/public`
+- **Protocol:** GraphQL over HTTP: `POST` with a JSON body (`GET` also works for queries)
+- **Auth:** your project's API token in the `project-auth` header, see [Authentication](/auth)
+- **Where to call it from:** your server (SSR, route handlers, build scripts), see [why](/auth#call-the-api-from-your-server)
+- **Schema:** [download `schema.graphql`](https://docs.cms-craft.com/schema.graphql) or browse the [API Reference](/reference)
+
+**Start here:** the [Quickstart](/getting-started) takes you from a token to a working Next.js or Astro page, including
+the cache refresh endpoint cms-craft calls when the content changes.
+
+## Getting access
+
+Access is granted by our team today. E-mail support@cms-craft.com, and we set up a developer project for you; then
+follow [Authentication](/auth#getting-the-token).
+
+Free during beta. Paid plans will follow; we will announce pricing and give notice before any charge.

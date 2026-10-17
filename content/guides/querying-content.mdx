@@ -1,0 +1,131 @@
+---
+title: Querying content
+---
+
+# Querying content
+
+All examples need the `project-auth` header ([Authentication](/auth)). The API only ever returns **published** records:
+a content item appears once it is published and its publish date has passed. Every operation and field is listed in
+the [API Reference](/reference).
+
+## Project info
+
+The project's name, languages, domains and files, for your layout and `<head>`:
+
+```graphql
+query Project {
+  publicProjectInfo {
+    name
+    mainLanguage { locale label }
+    availableLanguages { locale label }
+    domainUrls { domain isMainDomain }
+    translations { language { locale } title description }
+    ogImage { path optimizedUrl }
+  }
+}
+```
+
+## Pages and posts (contents)
+
+A **content** is a page or a post, with one translation per language. Fetch one by its SEO URL:
+
+```graphql
+query ContentBySeoUrl($seoUrl: String!) {
+  getPublicContentBySeoUrl(seoUrl: $seoUrl) {
+    id
+    seoUrl
+    isPage
+    publishDate
+    tags { label }
+    translations {
+      language { locale }
+      title
+      description
+      message
+      metaTitle
+      metaDescription
+    }
+    contentFiles { role isPrimary file { path optimizedUrl mimetype } }
+  }
+}
+```
+
+`message` is the rich-text body: a [Tiptap](https://tiptap.dev) document serialized as a JSON string. `description` is
+plain text. An unknown or unpublished URL returns a [not-found error](/errors#error-reference).
+
+List contents by tag (you choose the tags in the admin panel), newest first:
+
+```graphql
+query Posts($page: Int!) {
+  getPublicContentsByTags(
+    getContentByTagsInput: { tags: ["blog"] }
+    pageOptionsDto: { page: $page, limit: 10, order: DESC }
+  ) {
+    data {
+      id
+      seoUrl
+      publishDate
+      translations { language { locale } title description }
+    }
+    meta { page pageCount hasNextPage }
+  }
+}
+```
+
+`getContentByTagsInput` also takes `categorySlug` and `authorSlug` to narrow a blog list, `isActivity` to select
+contents marked as activities, and `locale` (see [Localization](/guides/localization)). It needs `tags`, `isActivity`
+or both; with neither it fails with `Provide tags, isActivity, or both`.
+
+Blog categories and authors:
+
+```graphql
+query BlogMeta {
+  postCategories { slug translations { language { locale } name } }
+  authors { slug name }
+}
+```
+
+## Products and categories
+
+Category queries work on every project; product queries need the project's products module (otherwise
+[`MODULE_DISABLED`](/errors#error-reference)).
+
+```graphql
+query Catalog {
+  publicCategoryTree { id slug path name children { id slug path name } }
+  publicProducts(pageOptionsDto: { page: 1, limit: 24 }, where: { categorySlug: "excavators" }) {
+    data {
+      id
+      slug
+      translations { language { locale } name description }
+      prices { isMain sellPrice rentPricePerDay currencyEntity { id isoCode symbol } }
+    }
+    meta { itemCount pageCount hasNextPage }
+  }
+}
+```
+
+One product by slug: `publicProduct(slug: "…")`. Several at once: `publicProductsBySlugs(slugs: […])`. Filters for
+`publicProducts` are in [Filtering products](/guides/filtering).
+
+## Sitemap
+
+Everything that should be in your `sitemap.xml`, in one query:
+
+```graphql
+query Sitemap {
+  sitemapData {
+    pages { url updatedAt changefreq priority }
+    contents { url updatedAt changefreq priority }
+    categories { url updatedAt changefreq priority }
+    products { url updatedAt changefreq priority }
+  }
+}
+```
+
+## Other data
+
+The schema also has queries for pets (`getPublicPets`, `getPublicPetBySlug`…), schedules (`getPublicSchedule`),
+donations (`getPublicDonationInfo`), newsletters (`getPublicNewsletters`) and connected streaming channels
+(`publicConnections`, `publicConnectionItems`…). Each needs the matching module on the project. See the
+[API Reference](/reference).

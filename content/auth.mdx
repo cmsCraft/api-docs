@@ -1,0 +1,72 @@
+---
+title: Authentication
+---
+
+# Authentication
+
+Every request to the public API names one cms-craft project with that project's **API token**, sent in the
+`project-auth` header:
+
+```http
+POST /graphql/public HTTP/1.1
+Host: main-craft.cms-craft.com
+Content-Type: application/json
+project-auth: <your project's API token>
+
+{"query":"{ publicProjectInfo { name } }"}
+```
+
+Everything the API returns, and every form it accepts, belongs to the project the token identifies. There is no user
+login, no cookie and no CSRF token on this endpoint.
+
+## Getting the token
+
+Access is granted by our team today. E-mail support@cms-craft.com and tell us what you are building. We give your
+account developer access and set up a **developer project** that you own. A new project starts in a build stage, for
+development.
+
+Then, in the cms-craft admin panel, open the project, go to **Settings → Integrations → API Token** and click
+**Reveal token**. The token is shown only to the owner of a developer project who has developer access, and to
+cms-craft staff. Other project members do not see the card.
+
+The token is 64 lowercase hexadecimal characters (`0-9`, `a-f`). Send it exactly as shown, with no prefix such as
+`Bearer` and no spaces. Any other value is refused with `not matched token`.
+
+## Regenerating the token
+
+On the same card you can **Regenerate Token**. If cms-craft also hosts the project's site, you can reveal the token
+but not regenerate it. E-mail support instead: we rotate it for you, so the hosted site keeps working.
+
+The old token stops working **immediately**: every request that still sends it gets `not matched token`. The new
+token can take up to 2 seconds to start working, so a request sent right after regenerating may also get
+`not matched token`; retry it after a moment. Update the environment variable on every app that uses it right after
+regenerating (and redeploy those apps if they read the variable at build time).
+
+Regenerate the token if it leaked. Regenerating it does not change the [revalidation secret](/guides/revalidation).
+
+## How secret is the token?
+
+The token gives read access to the project's **published** content (which is public on the project's site anyway) and
+lets its holder submit the project's public forms. It cannot read drafts, users or anything from the admin panel.
+So it is not a disaster if it is exposed, but keep it out of browser code and public repositories anyway: someone who
+has it can submit your forms (spam), read your published content through the API, and use up your token's
+[rate limit](/errors#rate-limits).
+
+Keep it in a server environment variable, as the [Quickstart](/getting-started) does.
+
+## Call the API from your server
+
+`/graphql/public` accepts requests from any origin: a browser on `localhost` or on your own domain works, and so do
+server-side `fetch`, `curl` and build scripts. It never uses cookies: the API ignores any cookie the browser sends and
+does not allow credentialed requests.
+
+Still, call the API from your server: server components and SSR, route handlers or API routes, server actions, or at
+build time. A token used in browser code is visible to every visitor of your site, who can then copy it.
+
+For a form, post it to your own server (a route handler or server action) and call the mutation from there; see
+[Form mutations](/guides/mutations).
+
+## Introspection is off
+
+Schema introspection is disabled in production; an introspection query fails with `GRAPHQL_VALIDATION_FAILED`. Use the
+downloadable schema instead: [Schema & types](/schema).

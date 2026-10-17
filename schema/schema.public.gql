@@ -1,0 +1,1517 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+enum AdoptionRequestStatus {
+  APPROVED
+  CANCELLED
+  COMPLETED
+  EXPIRED
+  PENDING
+  REJECTED
+}
+
+type AttributeDefinition {
+  createdAt: DateTime!
+  deletedAt: DateTime
+
+  """Description of the attribute"""
+  description: String
+  id: Int!
+
+  """UI input type for the attribute"""
+  inputType: AttributeInputType!
+
+  """Is this attribute active and available for use"""
+  isActive: Boolean!
+
+  """Can this attribute be used for filtering"""
+  isFilterable: Boolean!
+
+  """Is this attribute required for products"""
+  isRequired: Boolean!
+
+  """Unique key for the attribute (e.g., "capacity", "height")"""
+  key: String!
+
+  """Default label for the attribute"""
+  label: String!
+
+  """Type-specific options (min, max, choices, etc.)"""
+  options: JSON
+
+  """Sort order for displaying attributes"""
+  position: Float!
+
+  """Project this attribute belongs to"""
+  project: ProjectType!
+  translations: [AttributeDefinitionTranslation!]
+
+  """Data type of the attribute"""
+  type: AttributeType!
+
+  """Unit of measurement (e.g., "KG", "CM", "L")"""
+  unit: String
+  updatedAt: DateTime
+}
+
+type AttributeDefinitionTranslation {
+  attributeDefinition: AttributeDefinition!
+  createdAt: DateTime!
+  deletedAt: DateTime
+
+  """Translated description"""
+  description: String
+  id: Int!
+
+  """Translated label for the attribute"""
+  label: String!
+  language: LanguageType!
+
+  """Translated options (for SELECT/MULTI_SELECT choices)"""
+  translatedOptions: JSON
+
+  """Translated unit label (e.g., "kg", "кг", "kg")"""
+  unitLabel: String
+  updatedAt: DateTime
+}
+
+input AttributeFilterInput {
+  """Attribute key to filter by"""
+  attributeKey: String!
+
+  """Attribute values to match"""
+  values: [String!]!
+}
+
+"""UI input type for attribute"""
+enum AttributeInputType {
+  CHECKBOX
+  DATE_PICKER
+  MULTI_SELECT
+  NUMBER
+  RADIO
+  SELECT
+  SLIDER
+  TEXT
+}
+
+"""Type of attribute value"""
+enum AttributeType {
+  BOOLEAN
+  DATE
+  MULTI_SELECT
+  NUMBER
+  NUMBER_RANGE
+  SELECT
+  TEXT
+}
+
+type Author {
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: Int!
+  links: [String!]!
+  name: String!
+  portrait: File
+  position: Int
+  slug: String!
+  translations: [AuthorTranslation!]!
+  updatedAt: DateTime
+}
+
+type AuthorTranslation {
+  bio: String
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: Int!
+  language: LanguageType!
+  role: String
+  updatedAt: DateTime
+}
+
+type BookedDateRange {
+  bookedUnits: Int!
+  endDate: DateTime!
+  startDate: DateTime!
+}
+
+enum BookingStatus {
+  Cancelled
+  Completed
+  Confirmed
+  InProgress
+  Pending
+}
+
+type Category {
+  categoryFiles: [CategoryFile!]
+  children: [Category!]
+  colorToken: String
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: Int!
+  isActive: Boolean!
+  isPage: Boolean!
+  kind: CategoryKind!
+  parent: Category
+
+  """Materialized path of slugs, e.g. katalog/bagry"""
+  path: String!
+  position: Float
+  products: [ProductType!]
+  project: ProjectType!
+  seoImage: File
+  seoUrl: String
+  slug: String!
+  status: CategoryStatus!
+  translations: [CategoryTranslation!]
+  updatedAt: DateTime
+}
+
+type CategoryFile {
+  alt: String
+  category: Category!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  file: File!
+  id: Int!
+  isPrimary: Boolean
+  position: Float
+  role: CategoryFileRole
+  title: String
+  updatedAt: DateTime
+}
+
+enum CategoryFileRole {
+  Gallery
+  Hero
+  Og
+  Thumbnail
+}
+
+enum CategoryKind {
+  CATALOG
+  POST
+}
+
+enum CategoryStatus {
+  Active
+  Hidden
+}
+
+type CategoryTranslation {
+  category: Category!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  description: String
+  id: Int!
+  language: LanguageType!
+  metaDescription: String
+  metaTitle: String
+  name: String!
+  updatedAt: DateTime
+}
+
+type CategoryTreeNode {
+  children: [CategoryTreeNode!]
+  id: Int!
+  name: String
+  path: String!
+  position: Int
+  seoUrl: String
+  slug: String!
+}
+
+type Content {
+  author: Author
+  category: Category
+  contentFiles: [ContentFile!]
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: Int!
+  isActivity: Boolean!
+  isPage: Boolean!
+  isPublish: Boolean
+  project: ProjectType!
+  publishDate: DateTime!
+  seoImage: File
+  seoUrl: String
+  tags: [Tag!]
+  translations: [ContentTranslationsType!]
+  type: ContentType!
+  updatedAt: DateTime
+}
+
+type ContentFile {
+  alt: String
+  content: Content!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  file: File!
+  id: Int!
+  isPrimary: Boolean
+  position: Float
+  role: ContentFileRole
+  title: String
+  updatedAt: DateTime
+}
+
+enum ContentFileRole {
+  Attachment
+  Hero
+  Inline
+  Og
+}
+
+type ContentTranslationsType {
+  content: Content!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  description: String
+  id: Int!
+  language: LanguageType!
+  message: String
+  metaDescription: String
+  metaTitle: String
+  title: String!
+  updatedAt: DateTime
+}
+
+"""Indicates the type of content."""
+enum ContentType {
+  file
+  multi
+  text
+}
+
+type ContentsPage {
+  data: [Content!]!
+  meta: PageMetaDto
+}
+
+input CreatePublicBookingInput {
+  """Currency ID for pricing"""
+  currencyId: Int!
+
+  """Customer email"""
+  customerEmail: String!
+
+  """Customer name"""
+  customerName: String!
+
+  """Customer notes/requests"""
+  customerNotes: String
+
+  """Customer phone"""
+  customerPhone: String
+
+  """Rental end date/time"""
+  endDate: DateTime!
+
+  """Product ID to book"""
+  productId: Int!
+
+  """Number of units to book"""
+  quantity: Int = 1
+
+  """Rental start date/time"""
+  startDate: DateTime!
+}
+
+input CreatePublicOrderInput {
+  billingCity: String
+  billingCountry: String
+  billingPostalCode: String
+  billingSameAsShipping: Boolean = true
+  billingState: String
+  billingStreet: String
+
+  """Currency ID"""
+  currencyId: Int!
+
+  """Customer email"""
+  customerEmail: String!
+
+  """Customer full name"""
+  customerName: String!
+
+  """Customer notes/requests"""
+  customerNotes: String
+
+  """Customer phone"""
+  customerPhone: String
+
+  """Products to order"""
+  items: [PublicOrderItemInput!]!
+  paymentMethod: PaymentMethod
+
+  """Shipping city"""
+  shippingCity: String
+
+  """Shipping country code"""
+  shippingCountry: String
+
+  """Shipping postal code"""
+  shippingPostalCode: String
+
+  """Shipping state/region"""
+  shippingState: String
+
+  """Shipping street address"""
+  shippingStreet: String
+}
+
+type CurrencyType {
+  createdAt: DateTime!
+  decimalPlaces: Float!
+  deletedAt: DateTime
+  id: Int!
+  isoCode: String!
+  label: String!
+  projects: [ProjectType!]
+  rentalRates: [RentalRate!]
+  salePrices: [SalePriceType!]
+  symbol: String!
+  updatedAt: DateTime
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type DonationConfig {
+  accountHolderName: String!
+  bankBic: String
+  createdAt: DateTime!
+  deletedAt: DateTime
+  iban: String!
+  id: Int!
+  isEnabled: Boolean!
+  project: ProjectType!
+  qrFormat: QrFormat!
+  suggestedAmounts: [Int!]!
+  translations: [DonationConfigTranslation!]
+  updatedAt: DateTime
+  variableSymbol: String
+}
+
+type DonationConfigTranslation {
+  createdAt: DateTime!
+  deletedAt: DateTime
+  description: String
+  donationConfig: DonationConfig!
+  id: Int!
+  language: LanguageType!
+  thankYouMessage: String
+  title: String!
+  updatedAt: DateTime
+}
+
+type DonationInfo {
+  accountHolderName: String!
+  bankBic: String
+  iban: String!
+  id: Int!
+  qrData: String!
+  qrFormat: QrFormat!
+  suggestedAmounts: [Int!]!
+  translation: DonationTranslationInfo
+}
+
+type DonationTranslationInfo {
+  description: String
+  thankYouMessage: String
+  title: String!
+}
+
+enum EmbeddedOwnerType {
+  Content
+}
+
+"""CMS entity types that support cache revalidation"""
+enum EntityType {
+  AUTHOR
+  CATEGORY
+  CONTENT
+  DONATION_CONFIG
+  FILE
+  NEWSLETTER
+  PAGE_MANIFEST
+  PET
+  PRODUCT
+  PROJECT
+  PROJECT_INVITATION
+  SITE
+  SLOT
+  TAG
+  USER
+}
+
+type File {
+  createdAt: DateTime!
+  deletedAt: DateTime
+  embeddedOwnerId: Float
+  embeddedOwnerType: EmbeddedOwnerType
+  fieldName: String!
+  filename: String!
+  id: Int!
+  isEmbedded: Boolean!
+  mimetype: String!
+  optimizedUrl: String
+  path: String!
+  position: Float
+  project: ProjectType
+  updatedAt: DateTime
+}
+
+enum FileRole {
+  Gallery
+  Image
+  Manual
+  Og
+  Thumbnail
+}
+
+enum Gender {
+  FEMALE
+  MALE
+  UNKNOWN
+}
+
+input GetContentByTagsInput {
+  """
+  Only posts signed by the author with this slug. Narrows `tags` / `isActivity`; does not replace them.
+  """
+  authorSlug: String
+
+  """
+  Only posts in the blog category with this slug. Narrows `tags` / `isActivity`; does not replace them.
+  """
+  categorySlug: String
+  isActivity: Boolean
+  locale: String
+  tags: [String!]
+}
+
+type InventoryItem {
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: Int!
+  location: String
+  product: ProductType!
+  quantity: Float!
+  skuOverride: String
+  updatedAt: DateTime
+}
+
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON
+
+type LanguageType {
+  contentTranslations: [ContentTranslationsType!]
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: Int!
+  isoLabel: String!
+  label: String!
+  locale: String!
+  projectTranslations: [ProjectTranslations!]
+  projects: [ProjectType!]
+  updatedAt: DateTime
+}
+
+input MailInputType {
+  mailLanguage: MainMailDtoMailLanguage!
+
+  """
+  Subject line. Optional for `sendContactRequest`, which adds it after the project name.
+  """
+  subject: String
+  template: MainMailDtoTemplate!
+  templateData: JSON!
+
+  """
+  Recipients. Deprecated and ignored by `sendContactRequest`, which always delivers to the project's contact recipients; kept so existing callers keep validating.
+  """
+  to: [String!]
+}
+
+enum MainMailDtoMailLanguage {
+  cs
+  en
+  ru
+}
+
+enum MainMailDtoTemplate {
+  contact
+  creator_newsletter
+  creator_newsletter_welcome
+  domain_ready
+  email_verification
+  newsletter
+  newsletter_welcome
+  password_reset
+  project_invitation
+  schedule_registration
+  schedule_registration_reminder
+  schedule_registration_staff
+  schedule_registration_update
+  shelter_adoption_request
+  shelter_adoption_request_staff
+  shelter_adoption_status
+  shelter_newsletter
+  welcome
+}
+
+enum ModuleType {
+  BLOG
+  BOOKINGS
+  CATEGORIES
+  CONNECTIONS
+  CONTENT
+  DONATIONS
+  NEWSLETTER
+  ORDERS
+  PETS
+  PRODUCTS
+  SCHEDULING
+}
+
+type Mutation {
+  cancelRegistration(token: String!): Boolean!
+
+  """Create a guest booking"""
+  createPublicBooking(input: CreatePublicBookingInput!): PublicBookingResult!
+
+  """Create a guest order"""
+  createPublicOrder(input: CreatePublicOrderInput!): PublicOrderResult!
+  sendContactRequest(mailInput: MailInputType!): Boolean!
+  submitAdoptionRequest(input: PublicCreateAdoptionRequestInput!): PublicAdoptionRequestResult!
+  submitRegistration(input: SubmitRegistrationInput!): RegistrationResult!
+  subscribeNewsletter(input: SubscribeNewsletterInput!): PublicNewsletterSubscription!
+  unsubscribeNewsletter(token: String!): Boolean!
+}
+
+type NewsletterType {
+  createdAt: DateTime!
+  defaultFromEmail: String
+  defaultFromName: String
+  defaultReplyTo: String
+  deletedAt: DateTime
+  description: String
+  id: Int!
+  isActive: Boolean!
+  name: String!
+  project: ProjectType!
+  slug: String!
+  updatedAt: DateTime
+}
+
+"""Default value is ASC"""
+enum Order {
+  ASC
+  DESC
+}
+
+enum OrderStatus {
+  Cancelled
+  Delivered
+  Paid
+  Pending
+  Processing
+  Refunded
+  Shipped
+}
+
+type PageMetaDto {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  itemCount: Int!
+  page: Int!
+  pageCount: Int!
+  take: Int!
+}
+
+input PageOptionsInput {
+  limit: Int! = 10
+  order: Order! = ASC
+  page: Int! = 1
+}
+
+enum PaymentMethod {
+  BankTransfer
+  Card
+  Cash
+  Invoice
+  Other
+  PayPal
+  Stripe
+}
+
+type Pet {
+  adoptedDate: DateTime
+  adoptionFee: Float
+  age: Int!
+  arrivalDate: DateTime
+  breed: String!
+  categories: [Category!]
+  color: String
+  createdAt: DateTime!
+  deletedAt: DateTime
+  gender: Gender!
+  goodWithCats: Boolean!
+  goodWithDogs: Boolean!
+  goodWithKids: Boolean!
+  id: Int!
+  location: String
+  petFiles: [PetFile!]
+  project: ProjectType!
+  size: Size!
+  slug: String!
+  species: Species!
+  status: PetStatus!
+  trained: Boolean!
+  translations: [PetTranslation!]
+  updatedAt: DateTime
+  vaccinations: JSON
+  weight: Float
+}
+
+type PetFile {
+  alt: String
+  createdAt: DateTime!
+  deletedAt: DateTime
+  file: File!
+  id: Int!
+  isPrimary: Boolean
+  pet: Pet!
+  position: Float
+  role: PetFileRole
+  title: String
+  updatedAt: DateTime
+}
+
+enum PetFileRole {
+  Gallery
+  Image
+  Thumbnail
+}
+
+enum PetStatus {
+  ADOPTED
+  AVAILABLE
+  FOSTER
+  MEDICAL_HOLD
+  NOT_AVAILABLE
+  PENDING
+}
+
+type PetTranslation {
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: Int!
+  language: LanguageType!
+  medicalStatus: String
+  metaDescription: String
+  metaTitle: String
+  name: String!
+  personality: JSON
+  pet: Pet!
+  story: String
+  updatedAt: DateTime
+}
+
+enum Platform {
+  FACEBOOK
+  INSTAGRAM
+  KICK
+  TELEGRAM
+  TWITCH
+  YOUTUBE
+}
+
+type ProductAttribute {
+  attributeDefinition: AttributeDefinition!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: Int!
+
+  """Sort order for displaying this attribute"""
+  position: Float!
+  product: ProductType!
+  updatedAt: DateTime
+
+  """Attribute value (can be string, number, boolean, array, or object)"""
+  value: JSON!
+}
+
+enum ProductBadge {
+  Hit
+  New
+  Popular
+  Sale
+}
+
+input ProductBookedDatesInput {
+  """Month (1-12)"""
+  month: Int!
+
+  """Product ID"""
+  productId: Int!
+
+  """Year"""
+  year: Int!
+}
+
+type ProductFile {
+  alt: String
+  createdAt: DateTime!
+  deletedAt: DateTime
+  file: File!
+  id: Int!
+  isPrimary: Boolean
+  position: Float
+  product: ProductType!
+  role: FileRole
+  title: String
+  updatedAt: DateTime
+}
+
+type ProductPriceType {
+  createdAt: DateTime!
+  currencyEntity: CurrencyType!
+  deletedAt: DateTime
+  id: Int!
+  isMain: Boolean!
+  product: ProductType!
+  rentPricePerDay: Float
+  sellPrice: Float
+  updatedAt: DateTime
+}
+
+enum ProductStatus {
+  Active
+  Archivied
+  Draft
+}
+
+type ProductTranslation {
+  createdAt: DateTime!
+  deletedAt: DateTime
+  description: String
+  id: Int!
+  language: LanguageType!
+  metaDescription: String
+  metaTitle: String
+  name: String!
+  product: ProductType!
+  updatedAt: DateTime
+}
+
+type ProductType {
+  attributes: JSON
+  categories: [Category!]
+  createdAt: DateTime!
+  deletedAt: DateTime
+  featuredBadge: ProductBadge
+  featuredPosition: Float
+  id: Int!
+  inventory: [InventoryItem!]
+  isBookable: Boolean!
+  isFeatured: Boolean!
+  isPage: Boolean!
+  isSellable: Boolean!
+  prices: [ProductPriceType!]
+  productAttributes: [ProductAttribute!]
+  productFiles: [ProductFile!]
+  project: ProjectType!
+  rates: [RentalRate!]
+  rentableUnits: Float
+  salePrices: [SalePriceType!]
+  sellQuantity: Float
+  seoImage: File
+  seoUrl: String
+  sku: String!
+  slug: String!
+  status: ProductStatus!
+  translations: [ProductTranslation!]
+  updatedAt: DateTime
+}
+
+type ProjectDomainsType {
+  createdAt: DateTime!
+  deletedAt: DateTime
+  domain: String!
+  id: Int!
+
+  """
+  The domain also answers on its www. twin. On by default for an apex domain, off for a subdomain.
+  """
+  includeWww: Boolean!
+  isMainDomain: Boolean!
+  project: ProjectType
+  updatedAt: DateTime
+}
+
+type ProjectModuleType {
+  activatedAt: DateTime!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  expiresAt: DateTime
+  id: Int!
+  isActive: Boolean!
+  moduleType: ModuleType!
+  project: ProjectType!
+  updatedAt: DateTime
+}
+
+"""default value is  user"""
+enum ProjectRole {
+  MANAGER
+  OWNER
+  USER
+}
+
+type ProjectSeoVerificationType {
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: Int!
+  project: ProjectType!
+  provider: projectEntityEnum!
+  updatedAt: DateTime
+  verificationCode: String!
+}
+
+enum ProjectTemplate {
+  BLOG
+  CREATOR
+  DEFAULT
+  ECOMMERCE
+  MINIMAL
+  SHELTER
+}
+
+type ProjectTranslations {
+  createdAt: DateTime!
+  deletedAt: DateTime
+  description: String!
+  id: Int!
+  language: LanguageType
+  project: ProjectType!
+  title: String!
+  updatedAt: DateTime
+}
+
+type ProjectType {
+  availableCurrencies: [CurrencyType!]
+  availableLanguages: [LanguageType!]
+  contents: [Content!]
+  createdAt: DateTime!
+  deletedAt: DateTime
+  domainUrls: [ProjectDomainsType!]
+  donationConfigs: [DonationConfig!]
+  files: [File!]
+  id: Int!
+  mainCurrency: CurrencyType
+  mainLanguage: LanguageType!
+  modules: [ProjectModuleType!]
+  name: String!
+  ogImage: File
+  seoVerification: ProjectSeoVerificationType
+  statisticsHiddenSections: [StatisticsSection!]
+  template: ProjectTemplate
+  translations: [ProjectTranslations!]
+  umamiWebsiteId: String
+  updatedAt: DateTime
+  usersRelations: [ProjectUserRelation!]
+}
+
+type ProjectUserRelation {
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: Int!
+  project: ProjectType!
+  role: ProjectRole!
+  updatedAt: DateTime
+}
+
+type PublicAdoptionRequestResult {
+  createdAt: DateTime!
+  email: String!
+  id: Int!
+  requesterName: String!
+  status: AdoptionRequestStatus!
+}
+
+type PublicAvailabilityResult {
+  available: Boolean!
+  availableUnits: Int!
+  requestedUnits: Int!
+  totalUnits: Int!
+}
+
+type PublicBooking {
+  createdAt: DateTime!
+  currency: CurrencyType!
+
+  """Masked, e.g. j***@example.com"""
+  customerEmail: String
+  customerName: String
+
+  """The customer's own requests, as they typed them"""
+  customerNotes: String
+
+  """Masked: the last three digits, e.g. ***456"""
+  customerPhone: String
+  depositAmount: Float
+  depositPaid: Boolean!
+  endDate: DateTime!
+  id: Int!
+  isPaid: Boolean!
+  product: ProductType!
+  quantity: Float!
+  referenceCode: String
+  startDate: DateTime!
+  status: BookingStatus!
+  totalPrice: Float!
+}
+
+type PublicBookingResult {
+  depositAmount: String
+  message: String
+  referenceCode: String!
+  success: Boolean!
+  totalPrice: String!
+}
+
+type PublicCategoriesPage {
+  data: [Category!]!
+  meta: PageMetaDto
+}
+
+input PublicCategoriesWhereInput {
+  """Include only pages (isPage=true)"""
+  isPage: Boolean
+
+  """Filter by parent category ID"""
+  parentId: Int
+
+  """Filter by parent category slug"""
+  parentSlug: String
+
+  """Only root categories (no parent)"""
+  rootOnly: Boolean
+}
+
+type PublicChannelStats {
+  activeDays: Int
+  avgViewers: Float
+  followerCount: Int
+  followersGained: Int
+  followersGainedSince: DateTime
+  gamesPlayed: [String!]!
+  hoursStreamed: Float
+  hoursWatched: Float
+  peakViewers: Int
+  streamCount: Int!
+}
+
+input PublicCheckAvailabilityInput {
+  """Desired end date"""
+  endDate: DateTime!
+
+  """Product ID to check"""
+  productId: Int!
+
+  """Units needed"""
+  quantity: Int = 1
+
+  """Desired start date"""
+  startDate: DateTime!
+}
+
+type PublicConnection {
+  avatarUrl: String
+  displayName: String
+  externalId: String!
+  isLive: Boolean!
+  liveSince: DateTime
+  platform: Platform!
+  stats: PublicConnectionStats
+  url: String
+}
+
+type PublicConnectionItem {
+  description: String
+  durationSeconds: Int
+  externalRef: String!
+  mediaUrl: String
+  publishedAt: DateTime!
+  tags: [String!]!
+  title: String!
+  url: String
+  viewCount: Float
+}
+
+type PublicConnectionStats {
+  followerCount: Int
+  subscriberCount: Int
+  videoCount: Int
+  viewCount: Int
+}
+
+input PublicCreateAdoptionRequestInput {
+  email: String!
+  locale: String
+  message: String
+  petId: Int!
+  phone: String
+  requesterName: String!
+}
+
+type PublicNewsletterSubscription {
+  email: String!
+  id: Int!
+  status: SubscriberStatus!
+}
+
+type PublicOrder {
+  createdAt: DateTime!
+
+  """ISO 4217 code of the currency every amount is in"""
+  currencyCode: String!
+  currencySymbol: String!
+  customerName: String
+  deliveredAt: DateTime
+  discountAmount: Float
+  items: [PublicOrderItem!]!
+  orderNumber: String!
+  paidAt: DateTime
+  paymentMethod: PaymentMethod
+  shippedAt: DateTime
+  shippingAmount: Float
+  shippingCarrier: String
+  shippingCity: String
+  shippingCountry: String
+  shippingPostalCode: String
+  status: OrderStatus!
+  subtotal: Float!
+  taxAmount: Float
+  totalAmount: Float!
+  trackingNumber: String
+}
+
+type PublicOrderItem {
+  compareAtPrice: Float
+  lineTotal: Float!
+  productName: String!
+  productSku: String!
+  quantity: Int!
+  taxIncluded: Boolean!
+  unitPrice: Float!
+}
+
+input PublicOrderItemInput {
+  """Notes for this item"""
+  notes: String
+
+  """Product ID"""
+  productId: Int!
+
+  """Quantity to order"""
+  quantity: Int!
+}
+
+type PublicOrderResult {
+  message: String
+  orderNumber: String!
+  success: Boolean!
+  totalAmount: String!
+}
+
+input PublicPetFilterInput {
+  breed: String
+  categories: [Int!]
+  gender: Gender
+  goodWithCats: Boolean
+  goodWithDogs: Boolean
+  goodWithKids: Boolean
+  limit: Int
+  maxAge: Int
+  minAge: Int
+  offset: Int
+  search: String
+  size: Size
+  species: Species
+}
+
+type PublicProductsPage {
+  data: [ProductType!]!
+  meta: PageMetaDto
+}
+
+input PublicProductsWhereInput {
+  """Filter by product attributes"""
+  attributes: [AttributeFilterInput!]
+
+  """Filter by category ID"""
+  categoryId: Int
+
+  """Filter by category path"""
+  categoryPath: String
+
+  """Filter by category slug"""
+  categorySlug: String
+
+  """Filter only bookable products"""
+  isBookable: Boolean
+
+  """Filter only featured products"""
+  isFeatured: Boolean
+
+  """Filter only sellable products"""
+  isSellable: Boolean
+
+  """
+  Maximum price (uses sellPrice or rentPricePerDay based on product type)
+  """
+  maxPrice: Float
+
+  """
+  Minimum price (uses sellPrice or rentPricePerDay based on product type)
+  """
+  minPrice: Float
+
+  """Search in product name/description"""
+  search: String
+
+  """Filter by product slugs"""
+  slugs: [String!]
+}
+
+type PublicProjectDto {
+  availableLanguages: [LanguageType!]!
+  domainUrls: [ProjectDomainsType!]!
+  files: [File!]!
+  mainLanguage: LanguageType!
+  name: String!
+  ogImage: File
+  translations: [ProjectTranslations!]!
+}
+
+type PublicSchedule {
+  activities: [PublicScheduleActivity!]!
+  id: Int!
+  name: String!
+  slug: String!
+}
+
+type PublicScheduleActivity {
+  content: PublicScheduleContent!
+  id: Int!
+  registrationMode: RegistrationMode!
+  slots: [PublicScheduleSlot!]!
+}
+
+type PublicScheduleContent {
+  id: Int!
+  translations: [PublicScheduleContentTranslation!]!
+}
+
+type PublicScheduleContentTranslation {
+  description: String
+  language: PublicScheduleLanguage!
+  title: String!
+}
+
+type PublicScheduleLanguage {
+  id: Int!
+  locale: String!
+}
+
+type PublicScheduleSegment {
+  canceledUntil: DateTime
+  category: String
+  endAt: DateTime
+  externalRef: String!
+  isRecurring: Boolean!
+  startAt: DateTime!
+  title: String
+}
+
+type PublicScheduleSlot {
+  availableSeats: Int!
+  capacity: Int!
+  endAt: DateTime!
+  id: Int!
+  isFull: Boolean!
+  startAt: DateTime!
+  subjectName: String
+}
+
+type PublicStreamSession {
+  avgViewers: Float
+  durationMinutes: Int!
+  gameName: String
+  peakViewers: Int
+  startedAt: DateTime!
+  title: String
+}
+
+"""QR code format for bank transfers: SPD (Czech) or EPC (SEPA)"""
+enum QrFormat {
+  EPC
+  SPD
+}
+
+type Query {
+  """Get blog authors"""
+  authors: [Author!]!
+  getPublicContentById(contentId: Int!): Content!
+  getPublicContentBySeoUrl(seoUrl: String!): Content!
+  getPublicContentsByTags(getContentByTagsInput: GetContentByTagsInput!, pageOptionsDto: PageOptionsInput!): ContentsPage!
+
+  """Get donation configs with QR data for a project"""
+  getPublicDonationInfo(amount: Float, currency: String, locale: String, message: String): [DonationInfo!]!
+  getPublicFeaturedPets(limit: Int): [Pet!]!
+  getPublicNewsletters: [NewsletterType!]!
+  getPublicPetById(petId: Int!): Pet!
+  getPublicPetBySlug(slug: String!): Pet!
+  getPublicPets(filterInput: PublicPetFilterInput): [Pet!]!
+  getPublicPetsByCategory(categoryId: Int!, limit: Int): [Pet!]!
+
+  """Get active modules for current project (public)"""
+  getPublicProjectModules: [ProjectModuleType!]!
+  getPublicSchedule(from: DateTime, locale: String, slug: String!, to: DateTime): PublicSchedule
+  isPetAvailableForAdoption(petId: Int!): Boolean!
+
+  """Get post (blog) categories"""
+  postCategories: [Category!]!
+  projectContents(pageOptionInput: PageOptionsInput!): ContentsPage!
+  projectSeoVerification: [ProjectSeoVerificationType!]!
+
+  """Get booking by reference code"""
+  publicBookingByReference(
+    """
+    Required with an older, shorter reference code (BK-<year>-<6 hex characters>): the e-mail the booking was made with
+    """
+    customerEmail: String
+    referenceCode: String!
+  ): PublicBooking!
+
+  """Get paginated public categories"""
+  publicCategories(pageOptionsDto: PageOptionsInput!, where: PublicCategoriesWhereInput): PublicCategoriesPage!
+
+  """Get category by slug, path, or seoUrl"""
+  publicCategory(slug: String!): Category!
+
+  """Get category tree for navigation"""
+  publicCategoryTree: [CategoryTreeNode!]!
+
+  """Check product availability"""
+  publicCheckAvailability(input: PublicCheckAvailabilityInput!): PublicAvailabilityResult!
+
+  """Clips, VODs and highlights from a connected platform"""
+  publicConnectionItems(limit: Int! = 12, platform: Platform!, tag: String): [PublicConnectionItem!]!
+
+  """Planned streaming slots from a connected platform"""
+  publicConnectionSchedule(platform: Platform!): [PublicScheduleSegment!]!
+
+  """Measured channel statistics for the current project, over a window"""
+  publicConnectionStats(platform: Platform!, window: StatsWindow! = DAYS_30): PublicChannelStats
+
+  """Recent measured broadcasts for the current project"""
+  publicConnectionStreams(limit: Int! = 10, platform: Platform!): [PublicStreamSession!]!
+
+  """Public platform connections for the current project"""
+  publicConnections: [PublicConnection!]!
+
+  """Get filterable attribute definitions for catalog filtering"""
+  publicFilterableAttributes(languageId: Int): [AttributeDefinition!]!
+
+  """
+  Look up your own order: the order number plus the email it was placed with
+  """
+  publicOrderByNumber(email: String!, orderNumber: String!): PublicOrder!
+
+  """Get product by slug or seoUrl"""
+  publicProduct(slug: String!): ProductType!
+
+  """Get booked dates for calendar"""
+  publicProductBookedDates(input: ProductBookedDatesInput!): [BookedDateRange!]!
+
+  """Get paginated public products"""
+  publicProducts(pageOptionsDto: PageOptionsInput!, where: PublicProductsWhereInput): PublicProductsPage!
+
+  """Get products by slugs"""
+  publicProductsBySlugs(slugs: [String!]!): [ProductType!]!
+
+  """Check if current project has a specific module (public)"""
+  publicProjectHasModule(moduleType: ModuleType!): Boolean!
+  publicProjectInfo: PublicProjectDto!
+
+  """Get sitemap data for SSG"""
+  sitemapData: SitemapData!
+}
+
+enum RateUnit {
+  Day
+  Hour
+  Week
+}
+
+enum RegistrationMode {
+  AUTO
+  NONE
+  VET
+}
+
+type RegistrationResult {
+  status: RegistrationStatus!
+  waitlistPosition: Int
+}
+
+enum RegistrationStatus {
+  CANCELLED
+  CONFIRMED
+  PENDING
+  REJECTED
+  WAITLISTED
+}
+
+type RentalRate {
+  amount: String!
+  createdAt: DateTime!
+  currencyEntity: CurrencyType!
+  deletedAt: DateTime
+  deposit: String
+  extraKmPrice: String
+  id: Int!
+  includedKmPerDay: Float
+  minUnits: Float
+  product: ProductType!
+  seasonEnd: DateTime
+  seasonStart: DateTime
+  unit: RateUnit!
+  updatedAt: DateTime
+}
+
+type SalePriceType {
+  amount: Float!
+  compareAt: Float
+  createdAt: DateTime!
+  currencyEntity: CurrencyType!
+  deletedAt: DateTime
+  id: Int!
+  product: ProductType!
+  taxIncluded: Boolean!
+  updatedAt: DateTime
+}
+
+type SitemapData {
+  """Category listing pages"""
+  categories: [SitemapEntry!]!
+
+  """Content/article pages"""
+  contents: [SitemapEntry!]!
+
+  """Static pages (from categories/products with isPage=true)"""
+  pages: [SitemapEntry!]!
+
+  """Product pages"""
+  products: [SitemapEntry!]!
+}
+
+type SitemapEntry {
+  """Change frequency"""
+  changefreq: String
+
+  """Priority (0.0 to 1.0)"""
+  priority: Float
+
+  """Entity type (product, category, content, page)"""
+  type: String
+
+  """Last modification date"""
+  updatedAt: DateTime!
+
+  """URL path (slug or seoUrl)"""
+  url: String!
+}
+
+enum Size {
+  EXTRA_LARGE
+  LARGE
+  MEDIUM
+  SMALL
+}
+
+enum Species {
+  BIRD
+  CAT
+  DOG
+  OTHER
+  RABBIT
+  REPTILE
+  SMALL_ANIMAL
+}
+
+enum StatisticsSection {
+  AUDIENCE
+  EVENTS
+  MONTHLY
+  OUTCOMES
+  PETS
+  REPORT
+  SOURCES
+  SPEED
+  TRAFFIC
+}
+
+enum StatsWindow {
+  ALL_TIME
+  DAYS_7
+  DAYS_30
+  DAYS_90
+}
+
+input SubmitRegistrationInput {
+  email: String!
+  locale: String
+  message: String
+  phone: String
+  requesterName: String!
+  slotId: Int!
+}
+
+input SubscribeNewsletterInput {
+  email: String!
+  locale: String!
+  newsletterId: Float!
+}
+
+enum SubscriberStatus {
+  ACTIVE
+  PENDING
+  UNSUBSCRIBED
+}
+
+type Tag {
+  contents: [Content!]!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: Int!
+  label: String!
+  updatedAt: DateTime
+}
+
+"""Supported SEO verification providers"""
+enum projectEntityEnum {
+  Google
+  Seznam
+  Yandex
+}

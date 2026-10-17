@@ -1,0 +1,29 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"lineWidth": 120
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "single",
+			"semicolons": "asNeeded",
+			"trailingCommas": "none",
+			"arrowParentheses": "always"
+		}
+	},
+	"linter": { "enabled": true },
+	"files": {
+		"includes": [
+			"**",
+			"!out",
+			"!.next",
+			"!content/reference",
+			"!.schema",
+			"!schema",
+			"!public/schema.graphql",
+			"!next-env.d.ts"
+		]
+	}
+}
