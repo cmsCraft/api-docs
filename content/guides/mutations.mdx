@@ -20,7 +20,8 @@ before forwarding a submission.
 | `sendContactRequest` | (none) | yes | 5/min |
 | `subscribeNewsletter` | Newsletter | yes | 5/min |
 | `unsubscribeNewsletter` | (none) | no | 5/min |
-| `createPublicOrder` | Orders | yes | 20/min |
+| `createShopOrder` | E-shop (beta) | yes | 20/min |
+| `requestShopOrderWithdrawal` | (none) | yes | 5/min |
 | `createPublicBooking` | Bookings | yes | 20/min |
 | `submitRegistration` | Scheduling | yes | 5/min |
 | `cancelRegistration` | (none) | no | 5/min |
@@ -91,37 +92,9 @@ mutation Unsubscribe($token: String!) {
 
 ## Order
 
-A guest order. Use the product ids and the currency id from your product query
-(`prices { currencyEntity { id } }`).
-
-```graphql
-mutation Order($input: CreatePublicOrderInput!) {
-  createPublicOrder(input: $input) {
-    success
-    orderNumber
-    totalAmount
-    message
-  }
-}
-```
-
-```json
-{
-  "input": {
-    "currencyId": 1,
-    "customerName": "Jane Doe",
-    "customerEmail": "jane@example.com",
-    "customerPhone": "+420 600 000 000",
-    "items": [{ "productId": 42, "quantity": 2 }],
-    "shippingStreet": "Main Street 1",
-    "shippingCity": "Prague",
-    "shippingPostalCode": "11000",
-    "shippingCountry": "CZ"
-  }
-}
-```
-
-The customer can look the order up later with `publicOrderByNumber(orderNumber, email)`.
+Orders are part of the [E-shop (beta)](/guides/shop) module: `createShopOrder` places an order, `publicShopOrder`
+reads it by its link token and `requestShopOrderWithdrawal` records a withdrawal. The guide has the fields, the
+checkout, retries with an idempotency key and the errors.
 
 ## Booking
 

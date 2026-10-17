@@ -1,0 +1,287 @@
+---
+title: E-shop
+---
+
+# E-shop
+
+> **In beta, coming soon.** The e-shop API is in place, but a project's shop does not take orders until cms-craft
+> enables it for that project. Until then `publicShop` and `createShopOrder` fail with `MODULE_DISABLED`. Once the
+> module is on but the owner has not finished the setup, `publicShop` answers `ready: false` and `createShopOrder`
+> fails with `SHOP_NOT_READY`. [Contact us](mailto:support@cms-craft.com) to get a shop switched on. Names,
+> fields and limits can still change; changes are announced in the [changelog](/changelog).
+
+The e-shop module sells products from the project's catalog: the visitor picks products (and options), you send the
+order to the API, the shop owner gets it in the admin panel, and the customer gets e-mails and an order page. Prices
+are always calculated on our side: an order carries product ids and quantities, never prices.
+
+All money is in **minor units** (an integer): `12990` in `CZK` is 129.90 CZK. The currency is the shop's, one per
+project (`CZK` or `EUR`).
+
+## When does the shop work?
+
+Every shop operation, except reading and withdrawing an existing order, needs the **e-shop module** on the project:
+without it the call fails with `MODULE_DISABLED`. With the module on, the shop is **ready** when the owner has set up
+everything an order needs: the seller's details, a delivery method (not needed when no product requires shipping), a
+payment method, the terms and the withdrawal form, and the project's main domain. Until then:
+
+- `publicShop` answers normally, with `ready: false`.
+- `createShopOrder` fails with `SHOP_NOT_READY`. This can also mean the platform itself is not yet configured to take
+  orders; if a shop stays not ready after the owner has finished the setup, [contact us](mailto:support@cms-craft.com).
+
+Check `publicShop { ready }` before you show a checkout.
+
+## Reading the shop
+
+```graphql
+query Shop {
+  publicShop {
+    ready
+    currency
+    vatPayer
+    paymentMethods
+    unpaidCancelDays
+    termsUrl
+    complaintsUrl
+    withdrawalFormUrl
+    packetaApiKey
+    operator { name ico dic address email phone }
+    deliveryMethods {
+      id
+      type
+      name { languageCode value }
+      pickupNote { languageCode value }
+      priceMinor
+      freeAboveMinor
+      shipsTo
+    }
+  }
+}
+```
+
+- `deliveryMethods` lists the active ones. `type` is `Flat` (shipped to an address; `shipsTo` lists the country
+  codes), `Packeta` (delivery to a pickup point chosen in the Packeta widget) or `Pickup` (collected from the seller).
+  `freeAboveMinor`, when set, is the order subtotal from which shipping is free.
+- `paymentMethods` are the methods you can send as `paymentMethod`. See [Payment](#payment).
+- `packetaApiKey` is the public key of the Packeta point-picker widget, as configured for the shop, or `null`. It can
+  be set even when the shop has no active Packeta delivery method, so decide from `deliveryMethods` whether to show the
+  widget.
+- `termsUrl`, `complaintsUrl` and `withdrawalFormUrl` link to the shop's documents. Show the terms before the visitor
+  accepts them.
+- `unpaidCancelDays` is how many days an unpaid order is kept before it is cancelled automatically.
+- `operator` is the seller. Show it on the checkout and in the footer.
+
+## Product shop fields
+
+`ProductType` has the fields a cart needs, in the usual product queries ([Querying content](/guides/querying-content)):
+
+```graphql
+query ShopProducts {
+  publicProducts(pageOptionsDto: { page: 1, limit: 20 }) {
+    data {
+      id
+      slug
+      shopPriceMinor
+      vatRate
+      inStock
+      requiresShipping
+      optionListName { languageCode value }
+      options { id inStock label { languageCode value } }
+    }
+  }
+}
+```
+
+- `shopPriceMinor` is the price in the shop's currency, in minor units. `null` means the product cannot be bought in
+  the shop.
+- `vatRate` is the VAT percentage stored on the product (for example `21`). A shop that is not a VAT payer may still
+  return a number here; checkout ignores it. On a VAT-payer shop a product without a rate cannot be bought
+  (`shopPriceMinor` is `null`, and an order with it fails with `NOT_BUYABLE`). Prices include VAT.
+- `inStock` is `false` when nothing is left to sell. For a product with options it is `true` while any option has
+  stock; a product without options that needs no shipping (a service, a download) is always in stock. Options decide first: a product with options is in stock only while an option has stock, whether or not it ships. `sellQuantity` of the product is
+  public, but the stock of each option is never shown: use `inStock` on the option.
+- `requiresShipping` tells you whether the cart needs a delivery method.
+- `options` are the choices of a product (a size, a colour), each with its own `inStock`; `optionListName` is the
+  heading to show above them ("Size"). A product with options can only be bought with one of them chosen.
+
+## Placing an order
+
+Call it **from your server**: post the checkout form to your own route handler, validate it, then call the mutation
+([why](/auth#call-the-api-from-your-server)). The response holds the order's secret link token, which you must handle
+like a password: store it in the customer's session or send the customer to the order page, never log it.
+
+```graphql
+mutation PlaceOrder($input: CreateShopOrderInput!) {
+  createShopOrder(input: $input) {
+    orderNumber
+    accessToken
+    checkoutUrl
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "items": [{ "productId": 42, "optionId": 7, "quantity": 2 }],
+    "deliveryMethodId": 3,
+    "packetaPoint": { "id": "1234", "name": "Pickup point, Main Street", "address": "Main Street 1, 11000 Prague" },
+    "paymentMethod": "BankTransfer",
+    "customer": { "name": "Jane Doe", "email": "jane@example.com", "phone": "+420 600 000 000" },
+    "note": "Please ring the bell",
+    "termsAccepted": true,
+    "locale": "en",
+    "idempotencyKey": "checkout-8f3a2c71-5d0e"
+  }
+}
+```
+
+| Field | Rules |
+|---|---|
+| `items` | 1 to 50 lines, at most 100 units in all. Each line has `productId`, `quantity` (1 to 99) and `optionId`, which is required when the product has options and must be left out when it has none. |
+| `deliveryMethodId` | An id from `publicShop`. Leave it out when no product in the order requires shipping; sending one then fails with `INVALID_DELIVERY`, as does leaving it out when something ships. |
+| `packetaPoint` | `id` (up to 32 characters), `name` (200) and `address` (300) of the point the visitor picked. Required for a `Packeta` method. |
+| `address` | `street` and `city` (up to 200 characters each), `postalCode` (20) and a two-letter `country` code. Required for a `Flat` method, and the country must be in the method's `shipsTo`. |
+| `paymentMethod` | One of `publicShop { paymentMethods }`. |
+| `customer` | `name` (up to 120 characters), `email` (up to 254) and an optional `phone` (up to 40). |
+| `note` | Optional, up to 1,000 characters. Plain text. |
+| `termsAccepted` | Must be `true`, or the order fails with `TERMS_NOT_ACCEPTED`. |
+| `locale` | `cs` or `cs-CZ` style: two lowercase letters, optionally a dash and two capitals. The e-mails to the customer use it. |
+| `idempotencyKey` | Optional, see below. |
+
+The result has the `orderNumber`, the `accessToken` (the order link token, see [below](#reading-an-order)) and
+`checkoutUrl`, which is `null` today. The customer receives a confirmation e-mail that links to the order page on the
+project's main domain.
+
+### Retrying safely with `idempotencyKey`
+
+Send a unique key per checkout attempt (8 to 100 characters of `A-Z a-z 0-9 _ -`; for example a UUID you create when
+the visitor opens the checkout). Then, if your request times out and you cannot tell whether the order was placed,
+**repeat the same call with the same key**:
+
+- The same key with the same content returns the **first order** (same `orderNumber`, and a token for it). No second
+  order is placed, no stock is taken twice and no second e-mail is sent.
+- The same key with **different content** (another item, quantity, address, payment method...) fails with
+  `IDEMPOTENCY_KEY_REUSED`. Create a new key for a new order.
+
+Keys are unique per project. Without a key, a retry places a second order.
+
+### Payment
+
+- `BankTransfer`: the order is `Pending` until the shop owner marks it paid. The order page shows the account,
+  variable symbol, amount and a QR payload for the bank app. An unpaid order is cancelled after `unpaidCancelDays`.
+- `Cash`: pay at pickup. Only for an order delivered with a `Pickup` method; otherwise `PAYMENT_NOT_AVAILABLE`. A cash
+  order that is still `Pending` is also cancelled after `unpaidCancelDays`.
+- `Card`: **not available yet.** It is refused with `CARD_NOT_AVAILABLE`, whatever the shop offers. Do not show it.
+
+The methods in `publicShop { paymentMethods }` are the ones the owner has set up; `Card` may be listed there before it
+can be used, so offer only `BankTransfer` and `Cash` for now.
+
+### Errors
+
+Shop errors answer HTTP 200 with a code in `extensions.code`; see the [error reference](/errors#shop-errors). The ones
+a checkout should handle:
+
+- `OUT_OF_STOCK`: not enough stock. `extensions` has `productId` and `optionId`; refresh the product and ask the
+  visitor to change the cart. The whole order is refused and nothing is placed.
+- `NOT_BUYABLE`: the product cannot be bought, or it needs an option the line does not have (`productId`, `optionId`).
+- `INVALID_DELIVERY`: the delivery method, address, country or pickup point does not fit the order.
+- `RATE_LIMITED`: the e-mail already has 5 unpaid orders from the last 24 hours.
+- `SHOP_NOT_READY`: the shop is not open (see [above](#when-does-the-shop-work)).
+
+## Reading an order
+
+The `accessToken` from `createShopOrder` is the order's secret link token: whoever has it can read the order. The
+shop's confirmation e-mail links to `https://<project main domain>/<locale>/order/<token>` (`locale` is the one you sent
+with the order), so build **exactly that route** on your site and read the order on your server:
+
+```graphql
+query ShopOrder($token: String!) {
+  publicShopOrder(token: $token) {
+    orderNumber
+    status
+    paymentMethod
+    currency
+    createdAt
+    paidAt
+    shippedAt
+    deliveredAt
+    cancelAt
+    subtotalMinor
+    shippingMinor
+    discountMinor
+    totalMinor
+    vatBreakdown { rate baseMinor vatMinor }
+    items { name optionLabel quantity unitPriceMinor lineTotalMinor vatRate }
+    delivery {
+      type
+      name
+      priceMinor
+      packetaPoint { id name address }
+      address { street city postalCode country }
+    }
+    bankTransfer { iban accountNumberCz variableSymbol amountMinor qrPayload }
+    trackingNumber
+    trackingUrl
+    withdrawalRequestedAt
+  }
+}
+```
+
+- An older lookup, `publicOrderByNumber`, still exists; use `publicShopOrder(token)`.
+- `status` is `Pending`, `Paid`, `Processing`, `Shipped`, `Delivered`, `Cancelled` or `Refunded`.
+- `bankTransfer` is set only while the order is `Pending` and paid by bank transfer.
+- `cancelAt` is when an unpaid order will be cancelled automatically.
+- A wrong, malformed or unknown token (and a token of another project) all answer `NOT_FOUND`. The order page keeps
+  working even if the shop is later switched off.
+
+## Withdrawal
+
+A consumer can withdraw from an order. `requestShopOrderWithdrawal` records the request, at any order status and date,
+and notifies the shop. Give **either** the order link token **or** the order number with the e-mail the order was
+placed with (for a customer who lost the link); anything else fails with `BAD_REQUEST`.
+
+```graphql
+mutation Withdraw($input: ShopWithdrawalInput!) {
+  requestShopOrderWithdrawal(input: $input)
+}
+```
+
+```json
+{ "input": { "token": "<the order link token>", "message": "The size does not fit." } }
+```
+
+Returns `true`. A request for an order that already has one is accepted again without sending a second notice. An
+unknown order, or an e-mail that does not match the order number, is `NOT_FOUND`. `message` is optional (up to 2,000
+characters). Like the order page, withdrawal keeps working if the shop is later switched off. Whether the withdrawal is
+accepted and the money returned is for the shop owner to handle.
+
+### The withdrawal period
+
+The consumer's period is **14 calendar days**, counted from receipt of the goods (`deliveredAt`, set on delivery or on
+pickup), or from the order date (`createdAt`) for a services-only order, one with no delivery. If the last day falls on
+a Saturday, a Sunday or a Czech public holiday, the period ends on the next working day. It ends at 23:59:59 Prague
+time on that day.
+
+The API does **not** enforce the period: a request after the deadline is still accepted and recorded, and the shop owner
+decides what to do with it. The order e-mails show the deadline. `ShopOrder` has no deadline field, so a site that wants
+to show it computes it from `deliveredAt` (or `createdAt` when the order has no `delivery`) by the rule above.
+
+## Limits
+
+| Operation | Limit |
+|---|---|
+| `publicShop`, `publicShopOrder` | The general query limit: 200 per minute, counted per API token on a developer project whose site we do not host, per IP otherwise |
+| `publicProducts` (the product fields above) | 30 per minute per IP |
+| `createShopOrder` | 20 per minute per IP, **and** 20 per minute for the whole project |
+| `requestShopOrderWithdrawal` | 5 per minute per IP, **and** 20 per minute for the whole project |
+
+The per-project limit on `createShopOrder` and `requestShopOrderWithdrawal` applies to your server too, so a
+sudden burst of checkouts is answered with `TOO_MANY_REQUESTS` (HTTP 429, with `Retry-After`). Your server is one IP:
+add your own spam protection before forwarding a checkout ([Rate limits](/errors#rate-limits)).
+
+## Server-side only
+
+Call `createShopOrder`, `requestShopOrderWithdrawal` and `publicShopOrder` from your server, never from the browser:
+the API token is private, and the order token is a secret. Read the shop and products on your server too and cache them
+like other content ([Cache revalidation](/guides/revalidation)); stock changes when an order is placed, and the product
+pages you cache are refreshed through the same mechanism.

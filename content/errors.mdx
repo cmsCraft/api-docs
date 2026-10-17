@@ -36,6 +36,27 @@ HTTP status.
 | `QUERY_TOO_COMPLEX` | 400 | The query is over the [complexity limit](#query-limits). |
 | `BAD_REQUEST` | 405 | A mutation sent with `GET` (mutations need `POST`). |
 
+### Shop errors
+
+The [e-shop](/guides/shop) (beta) adds these codes. All of them answer HTTP **200**, and the ones with extra data put
+it next to the code in `extensions`.
+
+| `extensions.code` | HTTP | When |
+|---|---|---|
+| `SHOP_NOT_READY` | 200 | `createShopOrder` once the e-shop module is on but the owner has not finished setting the shop up. With the module off the code is `MODULE_DISABLED`. |
+| `TERMS_NOT_ACCEPTED` | 200 | `termsAccepted` was not `true`. |
+| `NOT_BUYABLE` | 200 | A product cannot be bought, or needs an option the line does not have. `extensions` has `productId` (and `optionId`). |
+| `OUT_OF_STOCK` | 200 | Not enough stock. `extensions` has `productId` and `optionId`. Nothing is placed. |
+| `INVALID_DELIVERY` | 200 | The delivery method, address, country or pickup point does not fit the order. |
+| `PAYMENT_NOT_AVAILABLE` | 200 | The payment method is not offered by the shop, or `Cash` was used without a `Pickup` delivery. |
+| `CARD_NOT_AVAILABLE` | 200 | `Card` was chosen. Card payments are not available yet. |
+| `IDEMPOTENCY_KEY_REUSED` | 200 | The `idempotencyKey` was already used for an order with different content. |
+| `RATE_LIMITED` | 200 | The e-mail already has 5 unpaid orders from the last 24 hours. Not the same as `TOO_MANY_REQUESTS`. |
+| `NOT_FOUND` | 200 | `publicShopOrder` or `requestShopOrderWithdrawal` with an unknown, malformed or other project's token, or an order number and e-mail that do not match. |
+
+A request with an invalid body (for example a malformed e-mail, or too many items) fails with `BAD_REQUEST`, as
+described above.
+
 ### Examples
 
 Missing token:
@@ -63,9 +84,9 @@ Module not enabled:
 {
   "errors": [
     {
-      "message": "Module \"ORDERS\" is not enabled for this project",
-      "path": ["createPublicOrder"],
-      "extensions": { "code": "MODULE_DISABLED", "moduleType": "ORDERS" }
+      "message": "Module \"ESHOP\" is not enabled for this project",
+      "path": ["createShopOrder"],
+      "extensions": { "code": "MODULE_DISABLED", "moduleType": "ESHOP" }
     }
   ],
   "data": null
@@ -114,7 +135,9 @@ The numbers below are the current defaults:
 |---|---|
 | Most queries | 200 (per API token or per IP, see below) |
 | `publicProducts`, `publicCategories`, `publicCategoryTree`, `getPublicPets`, `sitemapData`, `publicConnectionItems`, `publicConnectionSchedule` | 30 per IP |
-| `createPublicOrder`, `createPublicBooking` | 20 per IP |
+| `createPublicBooking` | 20 per IP |
+| `createShopOrder` | 20 per IP, and 20 for the whole project (per API token) |
+| `requestShopOrderWithdrawal` | 5 per IP, and 20 for the whole project (per API token) |
 | `sendContactRequest`, `subscribeNewsletter`, `unsubscribeNewsletter`, `submitRegistration`, `cancelRegistration`, `submitAdoptionRequest`, `publicOrderByNumber` | 5 per IP |
 | `publicBookingByReference` | 5 per IP, and 60 per API token |
 
