@@ -9,6 +9,14 @@ production; see the [stability policy](/schema#stability-policy).
 
 ## 2026-10-17
 
+- **Developer panel.** The admin panel has a **Developer** section under **Settings → Integrations** with the
+  endpoint, the header name, the project's stage and your usage today. It sits above the **API Token** card
+  ([Authentication](/auth#getting-the-token)).
+- **Usage is counted, nothing is refused.** A Build developer project is counted against 5,000 requests and 100
+  mutations per day, a Live one against 1,000,000 requests per month. During the beta nothing is refused when a
+  number is passed ([Usage](/errors#usage)). The code `DAILY_LIMIT` is reserved and not returned.
+- **Domains on developer projects.** The owner of a developer project that cms-craft does not host adds the
+  frontend's domains; on a project we host, ask support ([Cache revalidation](/guides/revalidation#domains)).
 - **Real error codes.** Errors now carry a specific `extensions.code`: `NOT_FOUND`, `CONFLICT`, `TOO_MANY_REQUESTS` and
   others, instead of `INTERNAL_SERVER_ERROR`. `extensions.originalError` is gone. Branch on the code
   ([Errors & limits](/errors#error-reference)).

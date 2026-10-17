@@ -30,6 +30,7 @@ HTTP status.
 | `INTERNAL_SERVER_ERROR` | 200 | An unexpected error on our side. The message is `Internal server error`. |
 | `TOO_MANY_REQUESTS` | 429 | You hit a [rate limit](#rate-limits). Wait for the seconds in `Retry-After`. |
 | `PROJECT_SUSPENDED` | 403 | The token is valid, but the project is suspended. Retrying does not help: contact support@cms-craft.com. |
+| `DAILY_LIMIT` | 429 | Reserved for a future hard daily limit. **Never returned today**: see [Usage](#usage). |
 | `GRAPHQL_VALIDATION_FAILED` | 400 | Unknown field or argument, [depth limit](#query-limits), or an introspection query. |
 | `BAD_USER_INPUT` | 400 | A variable is missing or has the wrong type. |
 | `QUERY_TOO_COMPLEX` | 400 | The query is over the [complexity limit](#query-limits). |
@@ -103,7 +104,8 @@ Unknown field:
 ## Rate limits
 
 Free during beta. Paid plans will follow; we will announce pricing and give notice before any charge.
-We monitor usage during the beta, and limits may change with notice in the [changelog](/changelog).
+We monitor usage during the beta, and limits may change with notice in the [changelog](/changelog). The
+per-minute limits below are about bursts; the daily and monthly numbers are in [Usage](#usage).
 
 Requests are counted **per operation** (each root field of a query counts on its own), over a **60-second window**.
 The numbers below are the current defaults:
@@ -148,6 +150,28 @@ What this means in practice:
   visit.
 - **Builds count too.** A static build that renders hundreds of pages one query each can hit the 200-per-minute
   limit. Prefer list queries over one query per page, limit build concurrency, and retry after `Retry-After`.
+
+## Usage
+
+Every operation that carries a valid token is counted for your project, once per request: a query with five root
+fields or aliases counts once. Counting is separate from the per-minute [rate limits](#rate-limits) above. Each
+request counts when it is answered, including one that comes back with an error such as `NOT_FOUND`; a request
+for a suspended project, or with a missing or wrong token, is not counted.
+
+| Project | Counted and limited |
+|---|---|
+| Developer project in the **Build** stage | 5,000 requests and 100 mutations per day |
+| Developer project that is **Live** | 1,000,000 requests per month |
+| Any other project | Counted, no limit |
+
+Days and months follow UTC. A mutation counts toward both the request total and the mutation total.
+
+**Nothing is refused during the beta.** If a project goes over a limit, we get a notice and may contact you, but
+your requests keep working. Should we ever start refusing requests over a limit, it will be announced in the
+[changelog](/changelog) first, and the answer will be HTTP 429 with `Retry-After`.
+
+You see your own numbers (requests and mutations today, requests this month) in the Developer panel of the admin
+panel: [Authentication](/auth#getting-the-token).
 
 ## Query limits
 

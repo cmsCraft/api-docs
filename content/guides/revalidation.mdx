@@ -9,7 +9,7 @@ your site and tells it which cached data changed. Your site drops that data and 
 
 ## The request cms-craft sends
 
-After every save, cms-craft sends one request to **every domain added to the project** in the admin panel:
+After every save, cms-craft sends one request to **every domain added to the project**:
 
 ```http
 POST https://<domain>/api/revalidate
@@ -48,6 +48,19 @@ author is renamed). When a whole site is refreshed by hand, every type is sent a
 So tag your cached fetches the same way: a list of posts with `content` (and `tag` if you filter by tags), a single
 page with `content-slug-<seoUrl>` or `content-<id>`, a product page with `product-slug-<slug>`.
 
+## Domains
+
+The domains are the list cms-craft calls. Who may change that list depends on the project:
+
+- **Developer project that cms-craft does not host (the usual case for your own frontend):** the project owner adds
+  and removes the domains, in the admin panel under **Settings**. The **Developer** section on
+  **Settings → Integrations** has a **Change domains** link to the same place.
+- **Project that cms-craft hosts:** we change the domains. Ask support@cms-craft.com. The Developer section says so
+  ("We host this project, so cms-craft changes its domains. Contact us to change them.").
+
+On a developer project, a change to the domains by anyone else (for example a project manager who is not the owner,
+or the owner of a project we host) is refused with the error reason `DEVELOPER_DOMAINS_LOCKED`.
+
 ## What your endpoint must do
 
 - **Check the secret.** Compare `x-revalidate-token` with the project's revalidation secret; answer 401 if it differs.
@@ -64,8 +77,8 @@ add a time-based expiry as a safety net.
 
 ## The revalidation secret
 
-It is in the admin panel under **Settings → Integrations → Revalidation secret** (click **Reveal secret**). The same
-people who can see the [API token](/auth#getting-the-token) can see it. Put it in your site's environment as
+It is in the admin panel under **Settings → Integrations**, on the **Revalidation secret** card (click
+**Reveal secret**). The same people who can see the [API token](/auth#getting-the-token) can see it. Put it in your site's environment as
 `REVALIDATE_TOKEN`.
 
 It is separate from the [API token](/auth): regenerating one does not change the other. If you regenerate the
