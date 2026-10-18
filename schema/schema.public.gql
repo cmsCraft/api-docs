@@ -1530,6 +1530,11 @@ type ShopOrder {
   delivery: ShopOrderDelivery
   discountMinor: Int!
   items: [ShopOrderItem!]!
+
+  """
+  The seller as at checkout; for an order placed before this was recorded, the shop operator now. Null without either
+  """
+  operator: ShopOperator
   orderNumber: String!
   paidAt: DateTime
   paymentMethod: PaymentMethod!
