@@ -223,6 +223,7 @@ query ShopOrder($token: String!) {
     trackingNumber
     trackingUrl
     withdrawalRequestedAt
+    operator { name ico dic address email phone }
   }
 }
 ```
@@ -231,6 +232,9 @@ query ShopOrder($token: String!) {
 - `status` is `Pending`, `Paid`, `Processing`, `Shipped`, `Delivered`, `Cancelled` or `Refunded`.
 - `bankTransfer` is set only while the order is `Pending` and paid by bank transfer.
 - `cancelAt` is when an unpaid order will be cancelled automatically.
+- `operator` is the seller as at checkout, so the order page keeps showing the details the customer bought from even
+  after the shop changes them. For an order placed before this was recorded, it is the shop's current operator; it is
+  `null` only when neither exists.
 - A wrong, malformed or unknown token (and a token of another project) all answer `NOT_FOUND`. The order page keeps
   working even if the shop is later switched off.
 

@@ -7,6 +7,12 @@ title: Changelog
 Notable changes to the public API and to these docs. Breaking changes are announced here before they reach
 production; see the [stability policy](/schema#stability-policy).
 
+## 2026-10-18
+
+- **New: `ShopOrder.operator`.** The seller's details as at checkout (`ShopOperator`: name, IČO, DIČ, address, e-mail,
+  phone), so an order page shows who the customer bought from even after the shop changes its details. Orders placed
+  before this change show the shop's current operator ([Reading an order](/guides/shop#reading-an-order)).
+
 ## 2026-10-17
 
 - **Request API access from the admin.** Open **Settings → Integrations** and use the **Request API access** card; no
