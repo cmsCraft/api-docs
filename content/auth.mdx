@@ -88,7 +88,7 @@ content, and has its own limits, so local work never touches the live site's lim
 | Reads | published content only | published and unpublished content ([preview](#what-a-development-token-sees)) |
 | Writes (form and order mutations) | yes | no: `DEV_TOKEN_READ_ONLY` (HTTP 403) |
 | Where to use it | the deployed site's server | your server-side code on `localhost`, CI, a staging server |
-| Limits | the project's [usage](/errors#usage) and [rate limits](/errors#rate-limits) | its own, per token: 5,000 requests per day, and 200 per minute for most queries |
+| Limits | the project's [usage](/errors#usage) and [rate limits](/errors#rate-limits) | its own, per token: 5,000 requests per day (daily: alert-only during the beta), and 200 per minute for most queries |
 | Billed | when paid plans start | never |
 
 Send it like the live token, in the `project-auth` header. It names the same project, and the
@@ -133,12 +133,14 @@ A revoked token cannot be restored: create a new one.
 A development token previews **publish state**: it reads what an editor has not published yet.
 
 - Contents (pages, posts) that are drafts or scheduled for later, including in `sitemapData`.
-- Products, pets and categories that are not active or not available (for example an adopted pet).
+- Products (and their options and attributes), pets and categories that are not active or not available (for
+  example an adopted pet).
 - Cancelled schedule slots. `PublicScheduleSlot.status` tells them apart: always `OPEN` for the live token, `OPEN` or
   `CANCELLED` for a development token.
 
 Everything else answers exactly as for the live token: modules the project has not switched on, private connections,
-booking and adoption availability, newsletters, and relations of an item (such as a post's category) are not lifted.
+booking and adoption availability, newsletters, and other relations of an item (such as a post's category) are not
+lifted.
 Answers to a development token are never cached on our side, so they are always fresh.
 
 ### Read-only
