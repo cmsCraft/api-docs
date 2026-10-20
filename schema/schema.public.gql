@@ -555,6 +555,16 @@ enum MainMailDtoTemplate {
   contact
   creator_newsletter
   creator_newsletter_welcome
+  creator_shop_low_stock
+  creator_shop_new_order
+  creator_shop_order_cancelled
+  creator_shop_order_confirmation
+  creator_shop_order_shipped
+  creator_shop_paid_after_cancel
+  creator_shop_payment_received
+  creator_shop_ready_for_pickup
+  creator_shop_withdrawal_received
+  creator_shop_withdrawal_request
   domain_ready
   email_verification
   newsletter
@@ -570,6 +580,16 @@ enum MainMailDtoTemplate {
   shelter_adoption_request_staff
   shelter_adoption_status
   shelter_newsletter
+  shelter_shop_low_stock
+  shelter_shop_new_order
+  shelter_shop_order_cancelled
+  shelter_shop_order_confirmation
+  shelter_shop_order_shipped
+  shelter_shop_paid_after_cancel
+  shelter_shop_payment_received
+  shelter_shop_ready_for_pickup
+  shelter_shop_withdrawal_received
+  shelter_shop_withdrawal_request
   shop_low_stock
   shop_new_order
   shop_order_cancelled
