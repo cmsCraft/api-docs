@@ -561,6 +561,7 @@ enum MainMailDtoTemplate {
   creator_shop_order_confirmation
   creator_shop_order_shipped
   creator_shop_paid_after_cancel
+  creator_shop_payment_mismatch
   creator_shop_payment_received
   creator_shop_ready_for_pickup
   creator_shop_withdrawal_received
@@ -586,6 +587,7 @@ enum MainMailDtoTemplate {
   shelter_shop_order_confirmation
   shelter_shop_order_shipped
   shelter_shop_paid_after_cancel
+  shelter_shop_payment_mismatch
   shelter_shop_payment_received
   shelter_shop_ready_for_pickup
   shelter_shop_withdrawal_received
@@ -596,6 +598,7 @@ enum MainMailDtoTemplate {
   shop_order_confirmation
   shop_order_shipped
   shop_paid_after_cancel
+  shop_payment_mismatch
   shop_payment_received
   shop_ready_for_pickup
   shop_withdrawal_received
