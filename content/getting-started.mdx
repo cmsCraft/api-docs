@@ -9,19 +9,25 @@ and for **Astro**; there is no separate starter repository.
 
 Free during beta. Paid plans will follow; we will announce pricing and give notice before any charge.
 
-## 1. Get your project's API token
+## 1. Get your tokens
 
 Sign up at the cms-craft admin, create a project, and as its owner open **Settings → Integrations** and click
 **Request API access** (tell us what you are building). We e-mail you when it is approved; no support e-mail is
 needed. Then the same page shows the **Developer** section, which shows the endpoint, the header name, the project's
-stage and your usage. Under it, the **API Token** card has a **Reveal token** button.
-Details: [Authentication](/auth#getting-the-token).
+stage and your usage. Under it are two cards:
 
-Put it in your server's environment, never in browser code:
+- **API Token** has the project's **live token** (**Reveal token**). It belongs on the deployed site's host only.
+- **Development tokens** creates a token for you (**Create token**; copy it, it is shown once). Use it on your machine:
+  it is read-only, also shows unpublished content, and has its own limits.
+
+Details: [Authentication](/auth#development-tokens).
+
+Put your development token in `.env.local`, never in browser code (and never in a `NEXT_PUBLIC_` variable):
 
 ```bash filename=".env.local"
 CMS_API_URL=https://main-craft.cms-craft.com/graphql/public
-CMS_PROJECT_TOKEN=paste-the-api-token-here
+# Your development token (cmsdev_…). The deployed site gets the live token instead.
+CMS_PROJECT_TOKEN=paste-your-development-token-here
 # Settings → Integrations → Revalidation secret → Reveal secret (used in step 4)
 REVALIDATE_TOKEN=paste-the-revalidation-secret-here
 ```
@@ -68,7 +74,9 @@ If the token is missing or wrong you get `"message": "no token"` or `"message": 
 
 Call the API **from your server**: server components, SSR, route handlers, server actions or build scripts. The API
 answers browsers too, but a token in browser code is visible to every visitor
-([why](/auth#call-the-api-from-your-server)). Keep it in server environment variables.
+([why](/auth#call-the-api-from-your-server)). Keep it in server environment variables. A development token is
+refused from a browser on any origin but `localhost` and `127.0.0.1` (`DEV_TOKEN_SERVER_ONLY`,
+[Server-side only](/auth#server-side-only)).
 
 ## 4. A complete starter
 
@@ -256,7 +264,14 @@ project (you can do it yourself on a developer project we do not host, see
 [Cache revalidation](/guides/revalidation).
 
 On your host, set the same environment variables (`CMS_API_URL`, `CMS_PROJECT_TOKEN`, `REVALIDATE_TOKEN`) for the build
-and the running site. The home page reads the API during `next build`, so the build fails without them.
+and the running site, with the **live token** in `CMS_PROJECT_TOKEN`. The home page reads the API during `next build`,
+so the build fails without them.
+
+- **Never build production from `.env.local`.** With a development token the production site would show drafts.
+- **A staging site on a development token must not be indexed** (send `noindex`): it shows drafts, and its sitemap
+  lists unpublished pages.
+- **Forms need the live token.** A development token is read-only: mutations answer `DEV_TOKEN_READ_ONLY`
+  ([Read-only](/auth#read-only)).
 
 ### Astro
 

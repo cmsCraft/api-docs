@@ -47,7 +47,8 @@ Both appear after your request is approved, and are shown only to the owner of t
 staff. Other project members do not see them.
 
 The token is 64 lowercase hexadecimal characters (`0-9`, `a-f`). Send it exactly as shown, with no prefix such as
-`Bearer` and no spaces. Any other value is refused with `not matched token`.
+`Bearer` and no spaces. Any other value (except a [development token](#development-tokens)) is refused with
+`not matched token`.
 
 ### Usage
 
@@ -73,6 +74,103 @@ Regenerate the token if it leaked. Regenerating it does not change the [revalida
 A suspended project (Stage: Suspended) answers every request that carries its valid token with HTTP 403 and
 `PROJECT_SUSPENDED`. Contact support@cms-craft.com to restore it.
 
+## Development tokens
+
+The API token above is the project's **live token**: the deployed site uses it. For everything else (a developer's
+laptop, CI, a staging deploy) create a **development token**. A development token is read-only, sees unpublished
+content, and has its own limits, so local work never touches the live site's limits or usage.
+
+| | Live token | Development token |
+|---|---|---|
+| How many | one per project | up to 10 active per project |
+| Looks like | 64 lowercase hex characters | `cmsdev_` + 8 hex + `_` + 64 hex |
+| Shown | **Reveal token** whenever you need it | once, when it is created |
+| Reads | published content only | published and unpublished content ([preview](#what-a-development-token-sees)) |
+| Writes (form and order mutations) | yes | no: `DEV_TOKEN_READ_ONLY` (HTTP 403) |
+| Where to use it | the deployed site's server | your server-side code on `localhost`, CI, a staging server |
+| Limits | the project's [usage](/errors#usage) and [rate limits](/errors#rate-limits) | its own, per token: 5,000 requests per day (daily: alert-only during the beta), and 200 per minute for most queries |
+| Billed | when paid plans start | never |
+
+Send it like the live token, in the `project-auth` header. It names the same project, and the
+[examples](/getting-started) work unchanged.
+
+### Creating one
+
+The **Development tokens** card is in **Settings → Integrations** of a developer project, under the **API Token**
+card. The project's owner and cms-craft staff see it, also on a project whose site cms-craft hosts.
+
+1. Press **Create token** and give it a **Label** (1 to 80 characters), named after the person or tool that will use
+   it, for example `Ada laptop` or `CI`.
+2. Optionally **Bind to a member**: pick the project member who will use it. A bound token is revoked automatically
+   when that member leaves the project.
+3. Copy the token. **This is the only time it is shown.** If you lose it, revoke it and create a new one.
+
+Create one token per person or tool, so you can revoke one without breaking the others. A project can have at most 10
+active development tokens; the 11th is refused with `DEV_TOKEN_LIMIT` (revoked tokens do not count). Development
+tokens exist only on developer projects: elsewhere creating one is refused with `DEV_TOKEN_NOT_DEVELOPER_PROJECT`.
+
+A new token can take up to 2 seconds to start working, like a regenerated live token.
+
+The card lists every token with its label, who it is for, who created it and when, when it was last used and its
+requests today. The **Developer** card's **Usage** shows live and development requests separately.
+
+### Revoking one
+
+Press **Revoke** on the token's row. It stops working **at once**: every request that sends it gets
+`not matched token`. Other development tokens and the live token keep working, and regenerating the live token does
+not touch the development tokens.
+
+cms-craft also revokes development tokens on its own:
+
+- **A bound token** when its member leaves or is removed from the project, or their account is deleted or suspended.
+- **Every token of the project** when the project stops being a developer project, when its ownership is transferred,
+  or when cms-craft staff turn off the owner's developer access or suspend the owner's account.
+
+A revoked token cannot be restored: create a new one.
+
+### What a development token sees
+
+A development token previews **publish state**: it reads what an editor has not published yet.
+
+- Contents (pages, posts) that are drafts or scheduled for later, including in `sitemapData`.
+- Products (and their options and attributes), pets and categories that are not active or not available (for
+  example an adopted pet).
+- Cancelled schedule slots. `PublicScheduleSlot.status` tells them apart: always `OPEN` for the live token, `OPEN` or
+  `CANCELLED` for a development token.
+
+Everything else answers exactly as for the live token: modules the project has not switched on, private connections,
+booking and adoption availability, newsletters, and other relations of an item (such as a post's category) are not
+lifted.
+Answers to a development token are never cached on our side, so they are always fresh.
+
+### Read-only
+
+Every public mutation has a real effect (a contact e-mail, a newsletter sign-up, a booking, a shop order), so a
+development token cannot send any of them: it gets HTTP 403 and `DEV_TOKEN_READ_ONLY`. Test forms on a second developer
+project with its own live token.
+
+### Server-side only
+
+A request with a development token that carries an `Origin` header (which every browser sends on a cross-origin
+request) is refused with HTTP 403 and `DEV_TOKEN_SERVER_ONLY`, unless the origin is `http://localhost`,
+`http://127.0.0.1` or the same with `https` and any port. Server-side `fetch`, `curl`, CI and build scripts send no
+`Origin` and work.
+
+Keep the token in a server environment variable such as `.env.local`, never in a `NEXT_PUBLIC_` variable or other
+browser code.
+
+### Keep it secret
+
+A development token is **more sensitive** than the live token: whoever has it reads your drafts. Never commit it, and
+revoke it at once if it leaks. Secret scanners can find it with this pattern:
+
+```text
+cmsdev_[0-9a-f]{8}_[0-9a-f]{64}
+```
+
+Never build or deploy production from a development token: the site would show drafts. A staging site on a
+development token must not be indexed (send `noindex`): its sitemap lists unpublished pages.
+
 ## How secret is the token?
 
 The token gives read access to the project's **published** content (which is public on the project's site anyway) and
@@ -81,7 +179,11 @@ So it is not a disaster if it is exposed, but keep it out of browser code and pu
 has it can submit your forms (spam), read your published content through the API, and use up your token's
 [rate limit](/errors#rate-limits).
 
-Keep it in a server environment variable, as the [Quickstart](/getting-started) does.
+Keep it in a server environment variable, as the [Quickstart](/getting-started) does. Keep it on the deployed site's
+host only: developers and CI use [development tokens](#development-tokens). If the live token sat on laptops or in CI
+before, regenerate it.
+
+A development token is different: it reads drafts, so treat it as a real secret ([Keep it secret](#keep-it-secret)).
 
 ## Call the API from your server
 
