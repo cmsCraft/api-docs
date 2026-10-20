@@ -9,6 +9,15 @@ production; see the [stability policy](/schema#stability-policy).
 
 ## 2026-10-18
 
+- **New: development tokens.** Create up to 10 per developer project in **Settings → Integrations → Development
+  tokens**: one per developer, CI or staging server, each shown once and revoked on its own. A development token
+  (`cmsdev_…`) is read-only (`DEV_TOKEN_READ_ONLY`, HTTP 403), for servers and `localhost` only
+  (`DEV_TOKEN_SERVER_ONLY`, HTTP 403), sees unpublished content (drafts, scheduled posts, inactive products, cancelled
+  slots), has its own limits (5,000 requests per day and 200 per minute per token, nothing refused during the beta) and
+  is never billed. Use it in `.env.local`; the deployed site keeps the live token. **If your live token was on laptops
+  or in CI, regenerate it** ([Development tokens](/auth#development-tokens)).
+- **New: `PublicScheduleSlot.status`** (`SlotStatus`: `OPEN` or `CANCELLED`). The live token only ever gets `OPEN` slots;
+  a development token also gets cancelled ones ([What a development token sees](/auth#what-a-development-token-sees)).
 - **New: `ShopOrder.operator`.** The seller's details as at checkout (`ShopOperator`: name, IČO, DIČ, address, e-mail,
   phone), so an order page shows who the customer bought from even after the shop changes its details. Orders placed
   before this change show the shop's current operator ([Reading an order](/guides/shop#reading-an-order)).

@@ -14,8 +14,9 @@ HTTP status.
   malformed variables): HTTP **400**, and the body has no `data` key.
 - **The request ran but a field failed** (missing token, module off, invalid form input…): HTTP **200**, `data` is
   `null` (or partial), and the error carries the `path` of the field that failed.
-- **Two exceptions:** a [rate limit](#rate-limits) answers HTTP **429**, and a suspended project answers HTTP **403**.
-  The body has the same shape as above.
+- **Two exceptions:** a [rate limit](#rate-limits) answers HTTP **429**, and a refusal no retry fixes (a suspended
+  project, a development token used for a mutation or from a browser) answers HTTP **403**. The body has the same shape
+  as above.
 
 ## Error reference
 
@@ -31,6 +32,8 @@ HTTP status.
 | `TOO_MANY_REQUESTS` | 429 | You hit a [rate limit](#rate-limits). Wait for the seconds in `Retry-After`. |
 | `PROJECT_SUSPENDED` | 403 | The token is valid, but the project is suspended. Retrying does not help: contact support@cms-craft.com. |
 | `DAILY_LIMIT` | 429 | Reserved for a future hard daily limit. **Never returned today**: see [Usage](#usage). |
+| `DEV_TOKEN_READ_ONLY` | 403 | A [development token](/auth#development-tokens) sent a mutation. Development tokens are read-only: use the live token. |
+| `DEV_TOKEN_SERVER_ONLY` | 403 | A development token came with an `Origin` header other than `localhost` or `127.0.0.1` (a browser on a site). Call the API from your server. |
 | `GRAPHQL_VALIDATION_FAILED` | 400 | Unknown field or argument, [depth limit](#query-limits), or an introspection query. |
 | `BAD_USER_INPUT` | 400 | A variable is missing or has the wrong type. |
 | `QUERY_TOO_COMPLEX` | 400 | The query is over the [complexity limit](#query-limits). |
@@ -56,6 +59,19 @@ it next to the code in `extensions`.
 
 A request with an invalid body (for example a malformed e-mail, or too many items) fails with `BAD_REQUEST`, as
 described above.
+
+### Development token errors
+
+Two codes come from the [development token](/auth#development-tokens) card in the admin panel, not from the public
+API. You see their message there:
+
+| `extensions.code` | When |
+|---|---|
+| `DEV_TOKEN_LIMIT` | The project already has 10 active development tokens. Revoke one first. `extensions.limit` is `10`. |
+| `DEV_TOKEN_NOT_DEVELOPER_PROJECT` | The project is not a developer project, so it cannot have development tokens. |
+
+The public API answers a development token with `DEV_TOKEN_READ_ONLY` or `DEV_TOKEN_SERVER_ONLY`
+([Error reference](#error-reference)), and a revoked one with `not matched token`.
 
 ### Examples
 
@@ -145,6 +161,9 @@ The 200-per-minute limit is counted per API token when the project is a develope
 host its site (the usual case if you build your own frontend). Otherwise it is counted per client IP address. The
 other limits are always counted per IP.
 
+A [development token](/auth#development-tokens) always has its own 200-per-minute bucket, on any project: local
+work never uses up the live site's limit, and one developer's runaway loop does not block the others.
+
 When you go over, the response has HTTP **429**, a `Retry-After` header with the number of seconds to wait, and this
 error:
 
@@ -188,6 +207,10 @@ for a suspended project, or with a missing or wrong token, is not counted.
 | Any other project (a Live project that is not a developer project) | Counted, no limit |
 
 Days and months follow UTC. A mutation counts toward both the request total and the mutation total.
+
+Requests with a [development token](/auth#development-tokens) are counted apart: they never count toward the
+project's numbers above and are never billed. Each development token is counted against **5,000 requests per day**,
+and all of a project's development tokens together against 20,000 per day. Like the numbers above, nothing is refused.
 
 **Nothing is refused during the beta.** If a project goes over a limit, we get a notice and may contact you, but
 your requests keep working. Should we ever start refusing requests over a limit, it will be announced in the
