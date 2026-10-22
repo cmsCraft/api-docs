@@ -369,6 +369,61 @@ type CurrencyType {
   updatedAt: DateTime
 }
 
+"""The signed-in client-zone Customer of this site (never an admin user)"""
+type Customer {
+  avatarUrl: String
+  createdAt: DateTime!
+  displayName: String!
+  email: String
+
+  """False until the Customer proves the address (magic link or code)"""
+  emailVerified: Boolean!
+  id: Int!
+  identities: [CustomerIdentity!]!
+  locale: String
+}
+
+"""
+Keep both tokens server-side (httpOnly cookies on the site domain); send the access token as Bearer
+"""
+type CustomerAuthPayload {
+  accessToken: String!
+  accessTokenExpiresAt: DateTime!
+  customer: Customer!
+
+  """
+  Null only when a parallel refresh already rotated the token: keep the refresh token you have
+  """
+  refreshToken: String
+}
+
+"""A social login linked to the signed-in Customer"""
+type CustomerIdentity {
+  createdAt: DateTime!
+  lastUsedAt: DateTime
+  provider: CustomerProvider!
+}
+
+enum CustomerProvider {
+  DISCORD
+  GOOGLE
+  STEAM
+  TWITCH
+}
+
+"""A device the Customer is signed in on"""
+type CustomerSession {
+  createdAt: DateTime!
+
+  """The session this request is made with"""
+  current: Boolean!
+  expiresAt: DateTime!
+  id: Int!
+  ip: String
+  lastSeenAt: DateTime
+  userAgent: String
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -610,6 +665,7 @@ enum ModuleType {
   BLOG
   BOOKINGS
   CATEGORIES
+  CLIENT_ZONE
   CONNECTIONS
   CONTENT
   DONATIONS
@@ -630,15 +686,49 @@ type Mutation {
   """Place a shop order; returns the order link token once"""
   createShopOrder(input: CreateShopOrderInput!): CreateShopOrderResult!
 
+  """Delete your account and everything linked to it, at once"""
+  deleteMe: Boolean!
+
+  """Trade the sign-in link's token for a session (single use)"""
+  exchangeCustomerLoginToken(token: String!): CustomerAuthPayload!
+
+  """End the session this request is signed in with"""
+  logoutCustomer: Boolean!
+
+  """End every session of the signed-in Customer, this one included"""
+  logoutCustomerEverywhere: Boolean!
+
+  """
+  Trade the social callback's one-time code plus your verifier for a session (single use, 60 s)
+  """
+  redeemCustomerSocialCode(code: String!, verifier: String!): CustomerAuthPayload!
+
+  """New access token; the refresh token rotates"""
+  refreshCustomerSession(refreshToken: String!): CustomerAuthPayload!
+
+  """
+  Email a sign-in link. Always true: the answer never says whether the address has an account
+  """
+  requestCustomerLogin(input: RequestCustomerLoginInput!): Boolean!
+
   """
   Record the consumer's withdrawal request; by token, or by order number + e-mail
   """
   requestShopOrderWithdrawal(input: ShopWithdrawalInput!): Boolean!
+
+  """Sign out one of your own devices"""
+  revokeSession(id: Int!): Boolean!
   sendContactRequest(mailInput: MailInputType!): Boolean!
+
+  """
+  Start a social sign-in: returns the URL to send the browser to (valid 5 min). The code comes back to the client zone's callback path
+  """
+  startCustomerSocialLogin(input: StartCustomerSocialLoginInput!): String!
   submitAdoptionRequest(input: PublicCreateAdoptionRequestInput!): PublicAdoptionRequestResult!
   submitRegistration(input: SubmitRegistrationInput!): RegistrationResult!
   subscribeNewsletter(input: SubscribeNewsletterInput!): PublicNewsletterSubscription!
   unsubscribeNewsletter(token: String!): Boolean!
+  updateMe(input: UpdateMeInput!): Customer!
 }
 
 type NewsletterType {
@@ -1351,6 +1441,9 @@ enum QrFormat {
 type Query {
   """Get blog authors"""
   authors: [Author!]!
+
+  """Download my data: everything held about the signed-in Customer (JSON)"""
+  exportMe: JSON!
   getPublicContentById(contentId: Int!): Content!
   getPublicContentBySeoUrl(seoUrl: String!): Content!
   getPublicContentsByTags(getContentByTagsInput: GetContentByTagsInput!, pageOptionsDto: PageOptionsInput!): ContentsPage!
@@ -1368,6 +1461,12 @@ type Query {
   getPublicProjectModules: [ProjectModuleType!]!
   getPublicSchedule(from: DateTime, locale: String, slug: String!, to: DateTime): PublicSchedule
   isPetAvailableForAdoption(petId: Int!): Boolean!
+
+  """The signed-in Customer"""
+  me: Customer!
+
+  """The signed-in Customer's devices"""
+  mySessions: [CustomerSession!]!
 
   """Get post (blog) categories"""
   postCategories: [Category!]!
@@ -1484,6 +1583,19 @@ type RentalRate {
   seasonStart: DateTime
   unit: RateUnit!
   updatedAt: DateTime
+}
+
+input RequestCustomerLoginInput {
+  """
+  The "I am 15 or older" box. Required to create an account: without it an unknown address gets no link
+  """
+  ageConfirmed: Boolean! = false
+  email: String!
+
+  """
+  The site's verify page; must be on one of the project's domains. The link adds ?token=
+  """
+  verifyUrl: String!
 }
 
 type SalePriceType {
@@ -1666,6 +1778,24 @@ enum Species {
   SMALL_ANIMAL
 }
 
+input StartCustomerSocialLoginInput {
+  """The "I am 15 or older" box. Required to create an account"""
+  ageConfirmed: Boolean! = false
+
+  """
+  base64url(sha256(verifier)); the server keeps the verifier and redeems the code with it
+  """
+  challenge: String!
+
+  """TWITCH only for now"""
+  provider: CustomerProvider!
+
+  """
+  Where the one-time code comes back: the client zone's callback path on one of the site's domains
+  """
+  returnUrl: String!
+}
+
 enum StatisticsSection {
   AUDIENCE
   EVENTS
@@ -1713,6 +1843,13 @@ type Tag {
   id: Int!
   label: String!
   updatedAt: DateTime
+}
+
+input UpdateMeInput {
+  displayName: String
+
+  """e.g. en, cs, en-GB"""
+  locale: String
 }
 
 type VatLine {
