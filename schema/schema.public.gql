@@ -228,6 +228,34 @@ type CategoryTreeNode {
   slug: String!
 }
 
+"""
+How people sign in on this site, for rendering its sign-in page. No personal data; tier NONE when never set
+"""
+type ClientZoneSignIn {
+  """False: no e-mail sign-in links, show social sign-in only"""
+  emailSignIn: Boolean!
+  providers: [CustomerProvider!]!
+  signupMode: ClientZoneSignupMode!
+  tier: ClientZoneTier!
+}
+
+"""
+self = people create their own Customer; invite = staff invitation only
+"""
+enum ClientZoneSignupMode {
+  INVITE
+  SELF
+}
+
+"""
+What the site offers its Customers: none (no login), basic, or secure (sensitive-data D15)
+"""
+enum ClientZoneTier {
+  BASIC
+  NONE
+  SECURE
+}
+
 type Content {
   author: Author
   category: Category
@@ -720,7 +748,7 @@ type Mutation {
   refreshCustomerSession(refreshToken: String!): CustomerAuthPayload!
 
   """
-  Email a sign-in link. Always true: the answer never says whether the address has an account
+  Email a sign-in link. Always true: the answer never says whether the address has an account, nor whether the site sends e-mail links at all (clientZoneSignIn.emailSignIn)
   """
   requestCustomerLogin(input: RequestCustomerLoginInput!): Boolean!
 
@@ -1459,6 +1487,11 @@ enum QrFormat {
 type Query {
   """Get blog authors"""
   authors: [Author!]!
+
+  """
+  How people sign in on this site (tier, signup mode, e-mail links, social providers). No personal data
+  """
+  clientZoneSignIn: ClientZoneSignIn!
 
   """Download my data: everything held about the signed-in Customer (JSON)"""
   exportMe: JSON!
