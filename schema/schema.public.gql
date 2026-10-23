@@ -687,7 +687,7 @@ enum ModuleType {
 
 type Mutation {
   """
-  Mail a 6-digit code (valid 15 min) to an address to add or change to. 5 per hour (TOO_MANY_EMAIL_CODES); only the newest code works. Nothing changes until verifyCustomerEmail
+  Mail a 6-digit code (valid 15 min) to an address to add or change to. Needs a session signed in within the last 30 min (REAUTH_REQUIRED). 5 per hour (TOO_MANY_EMAIL_CODES); only the newest code works. Nothing changes until verifyCustomerEmail
   """
   addCustomerEmail(input: AddCustomerEmailInput!): Boolean!
   cancelRegistration(token: String!): Boolean!
@@ -743,7 +743,7 @@ type Mutation {
   updateMe(input: UpdateMeInput!): Customer!
 
   """
-  Prove the address with its code; it becomes the verified e-mail. INVALID_EMAIL_CODE (wrong, expired, or 5 wrong guesses), EMAIL_IN_USE (another Customer of this site has it). 10 wrong guesses at one address in 24 h, from any Customer, lock that address for everyone until they age out (a guessing attack cannot claim it)
+  Prove the address with its code; it becomes the verified e-mail. INVALID_EMAIL_CODE (wrong, expired, or 5 wrong guesses), EMAIL_IN_USE (another Customer of this site has it). 10 wrong guesses at one address in 24 h lock it for that Customer, 100 from all Customers together lock it for everyone, until they age out
   """
   verifyCustomerEmail(input: VerifyCustomerEmailInput!): Customer!
 }
