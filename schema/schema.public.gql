@@ -2,6 +2,11 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input AddCustomerEmailInput {
+  """The address to add or change to; it gets a 6-digit code"""
+  email: String!
+}
+
 enum AdoptionRequestStatus {
   APPROVED
   CANCELLED
@@ -681,6 +686,10 @@ enum ModuleType {
 }
 
 type Mutation {
+  """
+  Mail a 6-digit code (valid 15 min) to an address to add or change to. 5 per hour (TOO_MANY_EMAIL_CODES); only the newest code works. Nothing changes until verifyCustomerEmail
+  """
+  addCustomerEmail(input: AddCustomerEmailInput!): Boolean!
   cancelRegistration(token: String!): Boolean!
 
   """Create a guest booking"""
@@ -732,6 +741,11 @@ type Mutation {
   subscribeNewsletter(input: SubscribeNewsletterInput!): PublicNewsletterSubscription!
   unsubscribeNewsletter(token: String!): Boolean!
   updateMe(input: UpdateMeInput!): Customer!
+
+  """
+  Prove the address with its code; it becomes the verified e-mail. INVALID_EMAIL_CODE (wrong, expired, or 5 wrong guesses), EMAIL_IN_USE (another Customer of this site has it). 10 wrong guesses at one address in 24 h, from any Customer, lock that address for everyone until they age out (a guessing attack cannot claim it)
+  """
+  verifyCustomerEmail(input: VerifyCustomerEmailInput!): Customer!
 }
 
 type NewsletterType {
@@ -1859,6 +1873,11 @@ type VatLine {
   baseMinor: Int!
   rate: Int!
   vatMinor: Int!
+}
+
+input VerifyCustomerEmailInput {
+  """The 6-digit code from the e-mail"""
+  code: String!
 }
 
 """Supported SEO verification providers"""
