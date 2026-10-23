@@ -621,6 +621,9 @@ enum MainMailDtoTemplate {
   creator_shop_ready_for_pickup
   creator_shop_withdrawal_received
   creator_shop_withdrawal_request
+  customer_email_code
+  customer_inactivity_warning
+  customer_login_link
   domain_ready
   email_verification
   newsletter
