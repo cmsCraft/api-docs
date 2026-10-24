@@ -744,6 +744,7 @@ enum MainMailDtoTemplate {
   customer_inactivity_warning
   customer_invite
   customer_login_link
+  customer_second_factor_reset
   domain_ready
   email_verification
   newsletter
