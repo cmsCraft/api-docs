@@ -500,6 +500,11 @@ Keep both tokens server-side (httpOnly cookies on the site domain); send the acc
 type CustomerAuthPayload {
   accessToken: String!
   accessTokenExpiresAt: DateTime!
+
+  """
+  Secure tier, first sign-in only: the 10 single-use backup codes, shown this once. Null on every other sign-in
+  """
+  backupCodes: [String!]
   customer: Customer!
 
   """
@@ -514,6 +519,9 @@ type CustomerIdentity {
   lastUsedAt: DateTime
   provider: CustomerProvider!
 }
+
+"""Basic tier: the session. Secure tier: the second-factor challenge"""
+union CustomerLoginStep = CustomerAuthPayload | SecondFactorChallenge
 
 enum CustomerProvider {
   DISCORD
@@ -799,6 +807,11 @@ type Mutation {
   addCustomerEmail(input: AddCustomerEmailInput!): Boolean!
   cancelRegistration(token: String!): Boolean!
 
+  """
+  The challenge's second factor → the session. Exactly one of code (6 digits from the authenticator app) and backupCode. The first good code enrols the Customer and returns backupCodes once. INVALID_SECOND_FACTOR_CODE (wrong or reused code), CHALLENGE_EXPIRED (unknown, used, older than 5 min, or its 5 tries spent), SECOND_FACTOR_LOCKED (10 wrong codes in an hour)
+  """
+  completeCustomerSecondFactor(backupCode: String, challengeToken: String!, code: String): CustomerAuthPayload!
+
   """Create a guest booking"""
   createPublicBooking(input: CreatePublicBookingInput!): PublicBookingResult!
 
@@ -808,7 +821,9 @@ type Mutation {
   """Delete your account and everything linked to it, at once"""
   deleteMe: Boolean!
 
-  """Trade the sign-in link's token for a session (single use)"""
+  """
+  Trade the sign-in link's token for a session (single use). Basic tier only: a secure site answers SECOND_FACTOR_REQUIRED, use startCustomerLogin
+  """
   exchangeCustomerLoginToken(token: String!): CustomerAuthPayload!
 
   """End the session this request is signed in with"""
@@ -826,6 +841,11 @@ type Mutation {
   refreshCustomerSession(refreshToken: String!): CustomerAuthPayload!
 
   """
+  Secure tier: a good authenticator code replaces all backup codes with 10 new ones, shown this once
+  """
+  regenerateCustomerBackupCodes(code: String!): [String!]!
+
+  """
   Email a sign-in link. Always true: the answer never says whether the address has an account, nor whether the site sends e-mail links at all (clientZoneSignIn.emailSignIn)
   """
   requestCustomerLogin(input: RequestCustomerLoginInput!): Boolean!
@@ -840,9 +860,19 @@ type Mutation {
   sendContactRequest(mailInput: MailInputType!): Boolean!
 
   """
+  Trade the sign-in link's token (single use) for the next step: the session on a basic site, a SecondFactorChallenge on a secure one (then completeCustomerSecondFactor). Same refusals as exchangeCustomerLoginToken
+  """
+  startCustomerLogin(token: String!): CustomerLoginStep!
+
+  """
   Start a social sign-in: returns the URL to send the browser to (valid 5 min). The code comes back to the client zone's callback path
   """
   startCustomerSocialLogin(input: StartCustomerSocialLoginInput!): String!
+
+  """
+  Secure tier: a good authenticator code marks this session's second factor fresh now (before sensitive downloads). Same wrong-code counting and lock as sign-in
+  """
+  stepUpCustomer(code: String!): Boolean!
   submitAdoptionRequest(input: PublicCreateAdoptionRequestInput!): PublicAdoptionRequestResult!
   submitRegistration(input: SubmitRegistrationInput!): RegistrationResult!
   subscribeNewsletter(input: SubscribeNewsletterInput!): PublicNewsletterSubscription!
@@ -1747,6 +1777,29 @@ type SalePriceType {
   product: ProductType!
   taxIncluded: Boolean!
   updatedAt: DateTime
+}
+
+"""
+Secure tier: the sign-in link was good, now the second factor. Send challengeToken with a code to completeCustomerSecondFactor within 5 minutes; 5 wrong codes end it
+"""
+type SecondFactorChallenge {
+  """Single use; keep it server-side"""
+  challengeToken: String!
+
+  """
+  False: the Customer sets up an authenticator app first (otpauthUri / manualKey / QR code)
+  """
+  enrolled: Boolean!
+  expiresAt: DateTime!
+
+  """The new secret (base32) to type in by hand; only when not enrolled"""
+  manualKey: String
+
+  """otpauth:// URI of the new secret; only when not enrolled"""
+  otpauthUri: String
+
+  """PNG data URL of the otpauth QR code; only when not enrolled"""
+  qrCodeDataUrl: String
 }
 
 type ShopAddress {
