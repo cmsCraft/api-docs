@@ -2,6 +2,11 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input AddCustomerEmailInput {
+  """The address to add or change to; it gets a 6-digit code"""
+  email: String!
+}
+
 enum AdoptionRequestStatus {
   APPROVED
   CANCELLED
@@ -223,6 +228,34 @@ type CategoryTreeNode {
   slug: String!
 }
 
+"""
+How people sign in on this site, for rendering its sign-in page. No personal data; tier NONE when never set
+"""
+type ClientZoneSignIn {
+  """False: no e-mail sign-in links, show social sign-in only"""
+  emailSignIn: Boolean!
+  providers: [CustomerProvider!]!
+  signupMode: ClientZoneSignupMode!
+  tier: ClientZoneTier!
+}
+
+"""
+self = people create their own Customer; invite = staff invitation only
+"""
+enum ClientZoneSignupMode {
+  INVITE
+  SELF
+}
+
+"""
+What the site offers its Customers: none (no login), basic, or secure (sensitive-data D15)
+"""
+enum ClientZoneTier {
+  BASIC
+  NONE
+  SECURE
+}
+
 type Content {
   author: Author
   category: Category
@@ -367,6 +400,61 @@ type CurrencyType {
   salePrices: [SalePriceType!]
   symbol: String!
   updatedAt: DateTime
+}
+
+"""The signed-in client-zone Customer of this site (never an admin user)"""
+type Customer {
+  avatarUrl: String
+  createdAt: DateTime!
+  displayName: String!
+  email: String
+
+  """False until the Customer proves the address (magic link or code)"""
+  emailVerified: Boolean!
+  id: Int!
+  identities: [CustomerIdentity!]!
+  locale: String
+}
+
+"""
+Keep both tokens server-side (httpOnly cookies on the site domain); send the access token as Bearer
+"""
+type CustomerAuthPayload {
+  accessToken: String!
+  accessTokenExpiresAt: DateTime!
+  customer: Customer!
+
+  """
+  Null only when a parallel refresh already rotated the token: keep the refresh token you have
+  """
+  refreshToken: String
+}
+
+"""A social login linked to the signed-in Customer"""
+type CustomerIdentity {
+  createdAt: DateTime!
+  lastUsedAt: DateTime
+  provider: CustomerProvider!
+}
+
+enum CustomerProvider {
+  DISCORD
+  GOOGLE
+  STEAM
+  TWITCH
+}
+
+"""A device the Customer is signed in on"""
+type CustomerSession {
+  createdAt: DateTime!
+
+  """The session this request is made with"""
+  current: Boolean!
+  expiresAt: DateTime!
+  id: Int!
+  ip: String
+  lastSeenAt: DateTime
+  userAgent: String
 }
 
 """
@@ -566,6 +654,10 @@ enum MainMailDtoTemplate {
   creator_shop_ready_for_pickup
   creator_shop_withdrawal_received
   creator_shop_withdrawal_request
+  customer_email_code
+  customer_inactivity_warning
+  customer_invite
+  customer_login_link
   domain_ready
   email_verification
   newsletter
@@ -610,6 +702,7 @@ enum ModuleType {
   BLOG
   BOOKINGS
   CATEGORIES
+  CLIENT_ZONE
   CONNECTIONS
   CONTENT
   DONATIONS
@@ -622,6 +715,10 @@ enum ModuleType {
 }
 
 type Mutation {
+  """
+  Mail a 6-digit code (valid 15 min) to an address to add or change to. Needs a session signed in within the last 30 min (REAUTH_REQUIRED). 5 per hour (TOO_MANY_EMAIL_CODES); only the newest code works. Nothing changes until verifyCustomerEmail
+  """
+  addCustomerEmail(input: AddCustomerEmailInput!): Boolean!
   cancelRegistration(token: String!): Boolean!
 
   """Create a guest booking"""
@@ -630,15 +727,54 @@ type Mutation {
   """Place a shop order; returns the order link token once"""
   createShopOrder(input: CreateShopOrderInput!): CreateShopOrderResult!
 
+  """Delete your account and everything linked to it, at once"""
+  deleteMe: Boolean!
+
+  """Trade the sign-in link's token for a session (single use)"""
+  exchangeCustomerLoginToken(token: String!): CustomerAuthPayload!
+
+  """End the session this request is signed in with"""
+  logoutCustomer: Boolean!
+
+  """End every session of the signed-in Customer, this one included"""
+  logoutCustomerEverywhere: Boolean!
+
+  """
+  Trade the social callback's one-time code plus your verifier for a session (single use, 60 s)
+  """
+  redeemCustomerSocialCode(code: String!, verifier: String!): CustomerAuthPayload!
+
+  """New access token; the refresh token rotates"""
+  refreshCustomerSession(refreshToken: String!): CustomerAuthPayload!
+
+  """
+  Email a sign-in link. Always true: the answer never says whether the address has an account, nor whether the site sends e-mail links at all (clientZoneSignIn.emailSignIn)
+  """
+  requestCustomerLogin(input: RequestCustomerLoginInput!): Boolean!
+
   """
   Record the consumer's withdrawal request; by token, or by order number + e-mail
   """
   requestShopOrderWithdrawal(input: ShopWithdrawalInput!): Boolean!
+
+  """Sign out one of your own devices"""
+  revokeSession(id: Int!): Boolean!
   sendContactRequest(mailInput: MailInputType!): Boolean!
+
+  """
+  Start a social sign-in: returns the URL to send the browser to (valid 5 min). The code comes back to the client zone's callback path
+  """
+  startCustomerSocialLogin(input: StartCustomerSocialLoginInput!): String!
   submitAdoptionRequest(input: PublicCreateAdoptionRequestInput!): PublicAdoptionRequestResult!
   submitRegistration(input: SubmitRegistrationInput!): RegistrationResult!
   subscribeNewsletter(input: SubscribeNewsletterInput!): PublicNewsletterSubscription!
   unsubscribeNewsletter(token: String!): Boolean!
+  updateMe(input: UpdateMeInput!): Customer!
+
+  """
+  Prove the address with its code; it becomes the verified e-mail. INVALID_EMAIL_CODE (wrong, expired, or 5 wrong guesses), EMAIL_IN_USE (another Customer of this site has it). 10 wrong guesses at one address in 24 h lock it for that Customer, 100 from all Customers together lock it for everyone, until they age out
+  """
+  verifyCustomerEmail(input: VerifyCustomerEmailInput!): Customer!
 }
 
 type NewsletterType {
@@ -1351,6 +1487,14 @@ enum QrFormat {
 type Query {
   """Get blog authors"""
   authors: [Author!]!
+
+  """
+  How people sign in on this site (tier, signup mode, e-mail links, social providers). No personal data
+  """
+  clientZoneSignIn: ClientZoneSignIn!
+
+  """Download my data: everything held about the signed-in Customer (JSON)"""
+  exportMe: JSON!
   getPublicContentById(contentId: Int!): Content!
   getPublicContentBySeoUrl(seoUrl: String!): Content!
   getPublicContentsByTags(getContentByTagsInput: GetContentByTagsInput!, pageOptionsDto: PageOptionsInput!): ContentsPage!
@@ -1368,6 +1512,12 @@ type Query {
   getPublicProjectModules: [ProjectModuleType!]!
   getPublicSchedule(from: DateTime, locale: String, slug: String!, to: DateTime): PublicSchedule
   isPetAvailableForAdoption(petId: Int!): Boolean!
+
+  """The signed-in Customer"""
+  me: Customer!
+
+  """The signed-in Customer's devices"""
+  mySessions: [CustomerSession!]!
 
   """Get post (blog) categories"""
   postCategories: [Category!]!
@@ -1484,6 +1634,19 @@ type RentalRate {
   seasonStart: DateTime
   unit: RateUnit!
   updatedAt: DateTime
+}
+
+input RequestCustomerLoginInput {
+  """
+  The "I am 15 or older" box. Required to create an account: without it an unknown address gets no link
+  """
+  ageConfirmed: Boolean! = false
+  email: String!
+
+  """
+  The site's verify page; must be on one of the project's domains. The link adds ?token=
+  """
+  verifyUrl: String!
 }
 
 type SalePriceType {
@@ -1666,6 +1829,24 @@ enum Species {
   SMALL_ANIMAL
 }
 
+input StartCustomerSocialLoginInput {
+  """The "I am 15 or older" box. Required to create an account"""
+  ageConfirmed: Boolean! = false
+
+  """
+  base64url(sha256(verifier)); the server keeps the verifier and redeems the code with it
+  """
+  challenge: String!
+
+  """TWITCH only for now"""
+  provider: CustomerProvider!
+
+  """
+  Where the one-time code comes back: the client zone's callback path on one of the site's domains
+  """
+  returnUrl: String!
+}
+
 enum StatisticsSection {
   AUDIENCE
   EVENTS
@@ -1715,10 +1896,22 @@ type Tag {
   updatedAt: DateTime
 }
 
+input UpdateMeInput {
+  displayName: String
+
+  """e.g. en, cs, en-GB"""
+  locale: String
+}
+
 type VatLine {
   baseMinor: Int!
   rate: Int!
   vatMinor: Int!
+}
+
+input VerifyCustomerEmailInput {
+  """The 6-digit code from the e-mail"""
+  code: String!
 }
 
 """Supported SEO verification providers"""
