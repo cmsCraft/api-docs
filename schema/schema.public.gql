@@ -228,6 +228,32 @@ type CategoryTreeNode {
   slug: String!
 }
 
+type ClientZoneAttributeDefinition {
+  description: [LocalizedText!]
+
+  """True: the Customer edits it (updateMyAttributes); false: shown only"""
+  editable: Boolean!
+
+  """
+  The one long free-text field: show the "no health, ID or bank details" warning with it
+  """
+  isNote: Boolean!
+  key: String!
+  label: [LocalizedText!]!
+  namespace: String!
+  options: CustomerAttributeOptions!
+  position: Int!
+
+  """A form prefill only, never stored as a value"""
+  prefill: JSON
+
+  """
+  A profile save (updateMyAttributes) must fill it when the Customer may write it
+  """
+  required: Boolean!
+  type: CustomerAttributeType!
+}
+
 """
 How people sign in on this site, for rendering its sign-in page. No personal data; tier NONE when never set
 """
@@ -404,6 +430,10 @@ type CurrencyType {
 
 """The signed-in client-zone Customer of this site (never an admin user)"""
 type Customer {
+  """
+  The Customer's attribute values they may read (customerAccess READ or READ_WRITE). Personal data: never cache it
+  """
+  attributes: [CustomerAttributeValue!]!
   avatarUrl: String
   createdAt: DateTime!
   displayName: String!
@@ -414,6 +444,54 @@ type Customer {
   id: Int!
   identities: [CustomerIdentity!]!
   locale: String
+}
+
+"""Limits on the values; which apply depends on the type"""
+type CustomerAttributeOptions {
+  """SELECT / MULTI_SELECT: the allowed values (1..100)"""
+  choices: [String!]
+
+  """NUMBER: whole numbers only"""
+  integer: Boolean
+
+  """NUMBER: highest allowed"""
+  max: Float
+
+  """TEXT: at most this many characters (1..1000, default 1000)"""
+  maxLength: Int
+
+  """NUMBER: lowest allowed"""
+  min: Float
+
+  """
+  TEXT: a PostgreSQL regular expression the value must match; anchor it (^…$) to match the whole value. The server decides: a check in the browser (JavaScript) is a hint only, its syntax differs
+  """
+  pattern: String
+}
+
+"""More types may come: treat a type you do not know as read-only"""
+enum CustomerAttributeType {
+  BOOLEAN
+  DATE
+  JSON
+  MULTI_SELECT
+  NUMBER
+  SELECT
+  TEXT
+}
+
+type CustomerAttributeValue {
+  key: String!
+  namespace: String!
+  value: JSON!
+}
+
+input CustomerAttributeValueInput {
+  key: String!
+  namespace: String!
+
+  """null removes the value"""
+  value: JSON
 }
 
 """
@@ -770,6 +848,11 @@ type Mutation {
   subscribeNewsletter(input: SubscribeNewsletterInput!): PublicNewsletterSubscription!
   unsubscribeNewsletter(token: String!): Boolean!
   updateMe(input: UpdateMeInput!): Customer!
+
+  """
+  Save the signed-in Customer's own attributes: only the keys given change, null removes one. Only READ_WRITE keys (ATTRIBUTE_NOT_WRITABLE; a key they cannot see is UNKNOWN_ATTRIBUTE). INVALID_ATTRIBUTE_VALUE and ATTRIBUTE_REQUIRED name the key in extensions; ATTRIBUTES_TOO_LARGE past 16 KB. A value the Customer writes is theirs to forge: anything the site computes belongs in a READ attribute
+  """
+  updateMyAttributes(input: UpdateMyAttributesInput!): Customer!
 
   """
   Prove the address with its code; it becomes the verified e-mail. INVALID_EMAIL_CODE (wrong, expired, or 5 wrong guesses), EMAIL_IN_USE (another Customer of this site has it). 10 wrong guesses at one address in 24 h lock it for that Customer, 100 from all Customers together lock it for everyone, until they age out
@@ -1489,6 +1572,11 @@ type Query {
   authors: [Author!]!
 
   """
+  The Customer attributes a Customer may see on this site, for its profile form (no personal data). Cache it with the site's revalidation tag client-zone-attributes
+  """
+  clientZoneAttributeDefinitions: [ClientZoneAttributeDefinition!]!
+
+  """
   How people sign in on this site (tier, signup mode, e-mail links, social providers). No personal data
   """
   clientZoneSignIn: ClientZoneSignIn!
@@ -1901,6 +1989,11 @@ input UpdateMeInput {
 
   """e.g. en, cs, en-GB"""
   locale: String
+}
+
+input UpdateMyAttributesInput {
+  """Only these keys change; at most 50"""
+  values: [CustomerAttributeValueInput!]!
 }
 
 type VatLine {
