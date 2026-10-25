@@ -7,6 +7,15 @@ title: Changelog
 Notable changes to the public API and to these docs. Breaking changes are announced here before they reach
 production; see the [stability policy](/schema#stability-policy).
 
+## 2026-10-25
+
+- **Newsletter sign-up needs e-mail confirmation.** `subscribeNewsletter` now uses double opt-in: the address gets a
+  confirmation e-mail and receives newsletters only after it clicks the link (unless it was already subscribed). The
+  answer no longer tells whether the address was already on the list. **Behaviour change:** `status` is always
+  `PENDING`, and `PublicNewsletterSubscription.id` is `@deprecated` and always `0`. If your site reads `id` or branches
+  on `status`, show one "check your inbox to confirm" message instead ([Newsletter](/guides/mutations#newsletter)).
+- **New: `MainMailDtoTemplate` values** `customer_second_factor_reset` and `newsletter_confirm`.
+
 ## 2026-10-18
 
 - **New: development tokens.** Create up to 10 per developer project in **Settings → Integrations → Development

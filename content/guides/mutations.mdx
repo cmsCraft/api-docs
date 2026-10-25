@@ -71,7 +71,6 @@ query Newsletters {
 ```graphql
 mutation Subscribe($input: SubscribeNewsletterInput!) {
   subscribeNewsletter(input: $input) {
-    id
     status
   }
 }
@@ -80,6 +79,11 @@ mutation Subscribe($input: SubscribeNewsletterInput!) {
 ```json
 { "input": { "email": "jane@example.com", "locale": "en", "newsletterId": 1 } }
 ```
+
+Sign-up uses double opt-in. `status` is always `PENDING`: the address gets an e-mail with a confirmation link and
+receives newsletters only after it clicks the link. An address that is already subscribed gets no new e-mail, and the
+answer is the same, so it does not tell whether the address was already on the list. Show one neutral message, such as
+"Check your inbox to confirm your subscription". The `id` field is deprecated and always `0`; do not select it.
 
 Every newsletter email carries cms-craft's own unsubscribe link, so you do not need an unsubscribe page. If you build
 one anyway, `unsubscribeNewsletter` takes the subscriber's unsubscribe token and returns a `Boolean`:
