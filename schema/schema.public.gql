@@ -748,6 +748,7 @@ enum MainMailDtoTemplate {
   domain_ready
   email_verification
   newsletter
+  newsletter_confirm
   newsletter_welcome
   password_reset
   project_invitation
@@ -1408,7 +1409,13 @@ type PublicDeliveryMethod {
 
 type PublicNewsletterSubscription {
   email: String!
-  id: Int!
+
+  """Always 0"""
+  id: Int! @deprecated(reason: "Always 0: the answer must not tell whether the address was already on the list")
+
+  """
+  Always PENDING: the address gets a confirmation e-mail unless it is already subscribed, and the answer does not say which
+  """
   status: SubscriberStatus!
 }
 
