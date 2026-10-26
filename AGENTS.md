@@ -22,7 +22,10 @@
 - `scripts/gen-reference.mjs` exits 1 if that file is missing; otherwise it copies it to `public/schema.graphql`
   (served as `/schema.graphql`) and to `.schema/schema.public.gql`, writes the reference landing page to
   `.schema/index.md`, and runs `gqlmd graphql-to-doc` (`@graphql-markdown/cli`), which reads `graphql.config.js` and
-  writes `content/reference/`.
+  writes `content/reference/`. It then writes an `index.md` into every reference folder that has none, listing the
+  folder's children.
+- **Every folder needs an `index` page** (`asIndexPage: true` in its front matter). The static host serves `/x` from
+  `x.html`; a folder with no index page has no `x.html`, so `/x` falls through to the bare directory and answers 403.
 - `scripts/check-examples.mjs` parses and validates every fenced `graphql` block in `content/` (except
   `content/reference/`) against the schema and exits 1 on any error. It runs in `prebuild`, so CI and the deploy
   build fail on a broken example.
