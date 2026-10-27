@@ -461,6 +461,11 @@ type Customer {
   emailVerified: Boolean!
   id: Int!
   identities: [CustomerIdentity!]!
+
+  """
+  A test customer: the site's owner trying the client zone (the site may show a test-account strip)
+  """
+  isTest: Boolean!
   locale: String
 }
 
