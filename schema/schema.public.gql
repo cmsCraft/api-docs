@@ -739,6 +739,7 @@ enum EntityType {
   PROJECT_INVITATION
   SHOP
   SITE
+  SITE_SETTING
   SLOT
   TAG
   USER
@@ -1846,6 +1847,16 @@ type Query {
 
   """The customer's order, read by its secret link token"""
   publicShopOrder(token: String!): ShopOrder!
+
+  """
+  Declared site settings of the current project: stored value, else the declared default
+  """
+  publicSiteSettings: JSON!
+
+  """
+  Text overrides for one locale of the current project, a flat object of dotted key to string
+  """
+  publicSiteTexts(locale: String!): JSON!
 
   """Get sitemap data for SSG"""
   sitemapData: SitemapData!
