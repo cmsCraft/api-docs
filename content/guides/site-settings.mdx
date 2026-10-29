@@ -1,0 +1,92 @@
+---
+title: Site settings and texts
+---
+
+# Site settings and texts
+
+A site can let the project's editors change some of its behaviour and wording in the admin panel without a deploy:
+**settings** (switches and options, such as whether a section is shown) and **texts** (overrides for the site's own UI
+strings, per language). The site declares which settings and texts exist, with their defaults; editors change the
+values; your site reads them with two queries.
+
+Sites built from a cms-craft template declare them already. Until a project has a declaration, both queries answer an
+empty object `{}`.
+
+## Settings
+
+```graphql
+query SiteSettings {
+  publicSiteSettings
+}
+```
+
+`publicSiteSettings` is a JSON object with **every declared setting**, keyed by the setting's key. Each value is the one
+an editor saved, or the declared default when nothing was saved (or when the saved value no longer fits the
+declaration). So you always get a full set and never need a fallback of your own:
+
+```json
+{
+  "data": {
+    "publicSiteSettings": {
+      "showNewsletter": true,
+      "heroLayout": "split",
+      "openingHoursNote": "Closed on public holidays"
+    }
+  }
+}
+```
+
+## Texts
+
+```graphql
+query SiteTexts($locale: String!) {
+  publicSiteTexts(locale: $locale)
+}
+```
+
+`locale` is one of the project's languages (`publicProjectInfo { availableLanguages { locale } }`, see
+[Localization](/guides/localization)). The answer is a flat JSON object of dotted key to string, and it holds **only
+the overrides**: your site's own messages keep the defaults, and you lay these strings over them.
+
+```json
+{
+  "data": {
+    "publicSiteTexts": {
+      "home.hero.title": "Fresh bread every morning",
+      "footer.contact.cta": "Write to us"
+    }
+  }
+}
+```
+
+For each declared text, the answer has:
+
+- the editor's text for `locale`, when there is one;
+- otherwise nothing when the declaration has a default for `locale` (your messages already hold it);
+- otherwise the editor's text for the project's main language, when there is one.
+
+A locale the project does not have answers `{}`. A saved text that no longer fits the declaration counts as not saved.
+
+```ts
+// Your site's messages for the locale, with the editors' overrides on top.
+const messagesFor = (defaults: Record<string, string>, overrides: Record<string, string>) => ({
+	...defaults,
+	...overrides
+})
+```
+
+If your messages are nested (`{ home: { hero: { title } } }`), set each dotted key at its path instead of spreading.
+
+## Caching
+
+Both answers are the same for every visitor, so cache them. When an editor saves, cms-craft sends the tag
+`site-settings` or `site-texts` to your site's `/api/revalidate` ([Cache revalidation](/guides/revalidation#tags)):
+
+```ts
+const { publicSiteSettings } = await cmsQuery<{ publicSiteSettings: Record<string, unknown> }>(
+	'query SiteSettings { publicSiteSettings }',
+	{ tags: ['site-settings'] }
+)
+```
+
+`cmsQuery` is the helper from the [Quickstart](/getting-started).

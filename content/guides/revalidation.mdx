@@ -40,10 +40,14 @@ For a change to one record, the tags are the record's type, `<type>-<id>` and, w
 | A pet | `pet`, `pet-12`, `pet-slug-rex` |
 | Tags on contents | `tag` |
 | Project settings (name, languages, domains, images…) | `project`, `project-5` |
+| [Site settings](/guides/site-settings) | `site-settings` |
+| [Site texts](/guides/site-settings#texts) | `site-texts` |
+| A [client zone record type](/guides/client-zone-records#record-types) | `client-zone-record-types` |
 
 Other types you may receive: `author`, `newsletter`, `file`, `donation_config`, `slot`, `project`, `page_manifest`,
 `site`, `project_invitation`. Some changes send only the bare type (for example `author`, or `content` when an
-author is renamed). When a whole site is refreshed by hand, every type is sent at once. Ignore tags you do not use.
+author is renamed). When a whole site is refreshed by hand, every type is sent at once, with `site-settings` and
+`site-texts`. Ignore tags you do not use.
 
 So tag your cached fetches the same way: a list of posts with `content` (and `tag` if you filter by tags), a single
 page with `content-slug-<seoUrl>` or `content-<id>`, a product page with `product-slug-<slug>`.

@@ -255,6 +255,24 @@ type ClientZoneAttributeDefinition {
 }
 
 """
+A record type the signed-in Customer may read: how to render its values (no personal data)
+"""
+type ClientZoneRecordType {
+  audience: CustomerRecordAudience!
+  cardinality: CustomerRecordCardinality!
+  fields: [CustomerRecordField!]!
+  label: [LocalizedText!]!
+  namespace: String!
+  position: Int!
+
+  """
+  True: myRecords needs a second factor proved in the last 15 minutes (STEP_UP_REQUIRED)
+  """
+  sensitive: Boolean!
+  type: String!
+}
+
+"""
 How people sign in on this site, for rendering its sign-in page. No personal data; tier NONE when never set
 """
 type ClientZoneSignIn {
@@ -443,6 +461,11 @@ type Customer {
   emailVerified: Boolean!
   id: Int!
   identities: [CustomerIdentity!]!
+
+  """
+  A test customer: the site's owner trying the client zone (the site may show a test-account strip)
+  """
+  isTest: Boolean!
   locale: String
 }
 
@@ -528,6 +551,104 @@ enum CustomerProvider {
   GOOGLE
   STEAM
   TWITCH
+}
+
+"""One of the signed-in Customer's records (or a shared one)"""
+type CustomerRecord {
+  """main for a ONE type"""
+  handle: String!
+  id: ID!
+  namespace: String!
+  position: Int!
+  type: String!
+  updatedAt: DateTime!
+
+  """
+  Keyed by field. Decimals are strings: parse them, never through a float for money
+  """
+  values: JSON!
+}
+
+enum CustomerRecordAudience {
+  CUSTOMER
+  SHARED
+}
+
+enum CustomerRecordCardinality {
+  MANY
+  ONE
+}
+
+type CustomerRecordChoice {
+  label: [LocalizedText!]!
+  value: String!
+}
+
+type CustomerRecordField {
+  description: [LocalizedText!]
+
+  """The key in a record's values (camelCase allowed); never renamed"""
+  key: String!
+  label: [LocalizedText!]!
+  options: CustomerRecordFieldOptions!
+  required: Boolean!
+
+  """What the field means to renderers and agents"""
+  role: CustomerRecordFieldRole
+  type: CustomerRecordFieldType!
+}
+
+"""Limits on the values; which apply depends on the field type"""
+type CustomerRecordFieldOptions {
+  """SELECT: the allowed values (1..100)"""
+  choices: [CustomerRecordChoice!]
+
+  """MONEY: the allowed ISO 4217 currencies (any when absent)"""
+  currencies: [String!]
+
+  """NUMBER / PERCENT: highest allowed, a decimal string"""
+  max: String
+
+  """TEXT: at most this many characters (1..1000; sensitive types 200)"""
+  maxLength: Int
+
+  """SERIES: at most this many points (1..5000, default 5000)"""
+  maxPoints: Int
+
+  """NUMBER / PERCENT: lowest allowed, a decimal string"""
+  min: String
+
+  """
+  TEXT: a PostgreSQL regular expression the value must match; anchor it (^…$). The server decides
+  """
+  pattern: String
+
+  """NUMBER: at most this many decimal places (0..6)"""
+  scale: Int
+
+  """SERIES: what the values are: MONEY:<ISO 4217>, PERCENT or NUMBER"""
+  unit: String
+}
+
+enum CustomerRecordFieldRole {
+  AMOUNT
+  AS_OF
+  HISTORY
+  LINK_KEY
+  RETURN
+  SHARE
+  TITLE
+}
+
+"""More types may come: treat a type you do not know as read-only"""
+enum CustomerRecordFieldType {
+  DATE
+  MONEY
+  NUMBER
+  PERCENT
+  SELECT
+  SERIES
+  TEXT
 }
 
 """A device the Customer is signed in on"""
@@ -618,6 +739,7 @@ enum EntityType {
   PROJECT_INVITATION
   SHOP
   SITE
+  SITE_SETTING
   SLOT
   TAG
   USER
@@ -1615,6 +1737,11 @@ type Query {
   clientZoneAttributeDefinitions: [ClientZoneAttributeDefinition!]!
 
   """
+  The record types a Customer may read on this site, to render myRecords (no personal data). Cache it with the site's revalidation tag client-zone-record-types
+  """
+  clientZoneRecordTypes: [ClientZoneRecordType!]!
+
+  """
   How people sign in on this site (tier, signup mode, e-mail links, social providers). No personal data
   """
   clientZoneSignIn: ClientZoneSignIn!
@@ -1641,6 +1768,11 @@ type Query {
 
   """The signed-in Customer"""
   me: Customer!
+
+  """
+  The signed-in Customer's records of one namespace (optionally some types), plus shared ones, in display order. A sensitive type needs a second factor proved in the last 15 minutes: STEP_UP_REQUIRED, then stepUpCustomer and ask again. Never cache the answer (fetch with no-store, never inside a shared cache)
+  """
+  myRecords(namespace: String!, types: [String!]): [CustomerRecord!]!
 
   """The signed-in Customer's devices"""
   mySessions: [CustomerSession!]!
@@ -1715,6 +1847,16 @@ type Query {
 
   """The customer's order, read by its secret link token"""
   publicShopOrder(token: String!): ShopOrder!
+
+  """
+  Declared site settings of the current project: stored value, else the declared default
+  """
+  publicSiteSettings: JSON!
+
+  """
+  Text overrides for one locale of the current project, a flat object of dotted key to string
+  """
+  publicSiteTexts(locale: String!): JSON!
 
   """Get sitemap data for SSG"""
   sitemapData: SitemapData!

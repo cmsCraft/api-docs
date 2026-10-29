@@ -16,8 +16,10 @@ project-auth: <your project's API token>
 {"query":"{ publicProjectInfo { name } }"}
 ```
 
-Everything the API returns, and every form it accepts, belongs to the project the token identifies. There is no user
-login, no cookie and no CSRF token on this endpoint.
+Everything the API returns, and every form it accepts, belongs to the project the token identifies. There is no
+cookie and no CSRF token on this endpoint. The only user login is the client zone's: operations for a signed-in client
+(such as `me` and `myRecords`) also take that client's access token in an `authorization: Bearer` header, next to
+`project-auth` ([Client zone records](/guides/client-zone-records#who-may-call-them)).
 
 ## Getting the token
 
