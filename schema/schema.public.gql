@@ -1849,6 +1849,11 @@ type Query {
   publicShopOrder(token: String!): ShopOrder!
 
   """
+  Template-declared content of the current project for one locale. Scope pages.<page>: the page document (sections: each single as its fields, each page collection as its shown items; seo). Scope collections.<key>: the shown items (key, path, fields). Images and files as id, url, optimizedUrl, mimetype, filename, alt. Null for a scope or locale the project does not declare
+  """
+  publicSiteContent(locale: String!, scope: String!): JSON
+
+  """
   Declared site settings of the current project: stored value, else the declared default
   """
   publicSiteSettings: JSON!
