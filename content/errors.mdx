@@ -60,6 +60,17 @@ it next to the code in `extensions`.
 A request with an invalid body (for example a malformed e-mail, or too many items) fails with `BAD_REQUEST`, as
 described above.
 
+### Client zone errors
+
+Operations for a signed-in client, such as [`myRecords`](/guides/client-zone-records), add these codes. Without the
+client zone module they fail with `MODULE_DISABLED` (`extensions.moduleType` is `CLIENT_ZONE`).
+
+| `extensions.code` | HTTP | When |
+|---|---|---|
+| `CUSTOMER_UNAUTHENTICATED` | 200 | The `authorization: Bearer` access token is missing, expired, revoked or for another project, the session has not proved its second factor on a secure-tier site, or a development token was used. The message is `Sign in again`. |
+| `STEP_UP_REQUIRED` | 200 | `myRecords` asked for a sensitive record type, and the session's second factor is older than 15 minutes. Send `stepUpCustomer(code)`, then ask again ([Sensitive records](/guides/client-zone-records#sensitive-records)). |
+| `SENSITIVE_NEEDS_SECURE_TIER` | 200 | `myRecords` asked for a sensitive record type, but the site's client zone is no longer on the secure tier. |
+
 ### Development token errors
 
 Two codes come from the [development token](/auth#development-tokens) card in the admin panel, not from the public

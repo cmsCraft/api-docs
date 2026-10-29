@@ -7,6 +7,23 @@ title: Changelog
 Notable changes to the public API and to these docs. Breaking changes are announced here before they reach
 production; see the [stability policy](/schema#stability-policy).
 
+## 2026-10-28
+
+- **New: site settings and texts.** `publicSiteSettings` returns every setting the site declares (the editor's value,
+  else the declared default), and `publicSiteTexts(locale)` the editors' overrides of the site's UI texts for one
+  language. Both are JSON; saving them sends the revalidation tags `site-settings` and `site-texts`
+  ([Site settings and texts](/guides/site-settings)).
+- **New: client zone records.** `clientZoneRecordTypes` describes the record types a signed-in client may read, and
+  `myRecords(namespace, types)` returns that client's records plus the shared ones. `myRecords` needs the client's
+  access token, must never be cached, and answers `STEP_UP_REQUIRED` for sensitive types without a recent second factor.
+  New types: `ClientZoneRecordType`, `CustomerRecord`, `CustomerRecordField`, `CustomerRecordFieldOptions`,
+  `CustomerRecordChoice` and the enums `CustomerRecordAudience`, `CustomerRecordCardinality`, `CustomerRecordFieldRole`
+  and `CustomerRecordFieldType` ([Client zone records](/guides/client-zone-records),
+  [Client zone errors](/errors#client-zone-errors)).
+- **New: `Customer.isTest`.** `true` for a test customer the project's staff created to try the client zone
+  ([Test customers](/guides/client-zone-records#test-customers)).
+- **New: `EntityType.SITE_SETTING`.**
+
 ## 2026-10-25
 
 - **Newsletter sign-up needs e-mail confirmation.** `subscribeNewsletter` now uses double opt-in: the address gets a

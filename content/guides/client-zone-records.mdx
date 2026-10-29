@@ -1,0 +1,222 @@
+---
+title: Client zone records
+---
+
+# Client zone records
+
+A project with the **client zone** lets its clients sign in on the site. **Customer records** are data the site's staff
+keep for one signed-in client (for example a portfolio summary or a list of holdings), plus **shared** records that
+every signed-in client sees. Clients only read them; staff write them in the admin panel.
+
+Two queries serve them:
+
+- `clientZoneRecordTypes` describes the record types a client may read and how to render them. It holds no personal
+  data and is the same for every visitor.
+- `myRecords` returns the signed-in client's own records (and the shared ones). It is personal data.
+
+Both need the **client zone module** on the project; without it they fail with `MODULE_DISABLED`
+(`extensions.moduleType` is `CLIENT_ZONE`).
+
+## Who may call them
+
+Like every public operation, both need the project's `project-auth` token. `myRecords` also needs the signed-in
+client's **access token**, as a Bearer token:
+
+```http
+POST /graphql/public HTTP/1.1
+Host: main-craft.cms-craft.com
+Content-Type: application/json
+project-auth: <your project's API token>
+authorization: Bearer <the client's access token>
+```
+
+The access token comes from the client-zone sign-in mutations (`CustomerAuthPayload.accessToken`; see `Mutation` in the
+[API Reference](/reference)). Keep it on your server, for example in an `httpOnly` cookie on the site's domain, and
+send it from there. The token must belong to the project named by `project-auth`.
+
+Without a valid access token (missing, expired, revoked, from another project, or a session that has not proved its
+second factor on a site that needs one), `myRecords` fails with `CUSTOMER_UNAUTHENTICATED` (message `Sign in again`): send
+the client to sign in again. A [development token](/auth#development-tokens) never works for a client: use the live token.
+
+## Record types
+
+```graphql
+query RecordTypes {
+  clientZoneRecordTypes {
+    namespace
+    type
+    label { languageCode value }
+    audience
+    cardinality
+    sensitive
+    position
+    fields {
+      key
+      label { languageCode value }
+      description { languageCode value }
+      type
+      role
+      required
+      options {
+        choices { value label { languageCode value } }
+        currencies
+        min
+        max
+        scale
+        maxLength
+        maxPoints
+        unit
+      }
+    }
+  }
+}
+```
+
+- `namespace` groups types (for example `portfolio`); `type` names one within it. Types come in namespace and
+  `position` order.
+- `audience`: `CUSTOMER` records belong to one client; `SHARED` records belong to no one, and every signed-in client
+  sees them.
+- `cardinality`: a `ONE` type has at most one record per client, with the handle `main`; a `MANY` type has any number,
+  each with its own handle.
+- `sensitive: true` means reading it needs a fresh second factor (see [Sensitive records](#sensitive-records)).
+- `fields` say how to render each value: `key` is the key in a record's `values` and is never renamed, `type` is the
+  value's shape, and `role` (optional) says what the field means, for generic renderers: `TITLE`, `AS_OF` (the date the
+  figures are for), `AMOUNT`, `RETURN`, `SHARE`, `HISTORY` (a time series) or `LINK_KEY`.
+
+This answer changes only when staff change a type, so cache it: cms-craft sends the tag `client-zone-record-types` to
+your site's `/api/revalidate` when they do ([Cache revalidation](/guides/revalidation#tags)).
+
+## Reading a client's records
+
+```graphql
+query MyRecords($namespace: String!, $types: [String!]) {
+  myRecords(namespace: $namespace, types: $types) {
+    id
+    namespace
+    type
+    handle
+    position
+    updatedAt
+    values
+  }
+}
+```
+
+Pass a `namespace` and, optionally, the `types` you want. The answer has the client's records of those types, plus the
+shared ones, in display order. An unknown namespace or type gives an empty list, not an error.
+
+```json
+{
+  "data": {
+    "myRecords": [
+      {
+        "id": "101",
+        "namespace": "portfolio",
+        "type": "summary",
+        "handle": "main",
+        "position": 0,
+        "updatedAt": "2026-10-20T08:00:00.000Z",
+        "values": {
+          "asOf": "2026-09-30",
+          "balance": { "amount": "125400.50", "currency": "EUR" },
+          "returnYtd": "4.25"
+        }
+      },
+      {
+        "id": "102",
+        "namespace": "portfolio",
+        "type": "holding",
+        "handle": "growth-fund",
+        "position": 1,
+        "updatedAt": "2026-10-20T08:00:00.000Z",
+        "values": {
+          "name": "Growth fund",
+          "share": "60",
+          "history": [
+            { "date": "2026-07-31", "value": "1.10" },
+            { "date": "2026-08-31", "value": "-0.40" }
+          ]
+        }
+      }
+    ]
+  }
+}
+```
+
+`values` is keyed by the fields' `key`. Each field type has one shape:
+
+| Field type | Value |
+|---|---|
+| `TEXT` | A string. |
+| `NUMBER` | A decimal **string**, such as `"1200000"` or `"0.5"`. |
+| `PERCENT` | A decimal string in percent: `"14.7"` is 14.7 %. |
+| `MONEY` | `{ "amount": "<decimal string>", "currency": "<ISO 4217 code>" }`. |
+| `DATE` | `"YYYY-MM-DD"`. |
+| `SELECT` | One of the field's `options.choices` values. |
+| `SERIES` | A list of `{ "date": "YYYY-MM-DD", "value": "<decimal string>" }`, sorted by date. `options.unit` says what the values are: `MONEY:<currency>`, `PERCENT` or `NUMBER`. |
+
+Decimals are strings so that money never passes through a floating-point number: parse them with a decimal library, or
+format them as they are. More field types may be added: render a type you do not know as plain text, or skip it.
+
+**Never cache the answer.** It belongs to one client. The API answers it with `Cache-Control: private, no-store`; fetch
+it with `cache: 'no-store'` and never put it in a cache shared between visitors:
+
+```ts
+export const myRecords = async (accessToken: string, namespace: string) => {
+	const response = await fetch(process.env.CMS_API_URL as string, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'project-auth': process.env.CMS_PROJECT_TOKEN as string,
+			authorization: `Bearer ${accessToken}`
+		},
+		body: JSON.stringify({
+			query: 'query MyRecords($namespace: String!) { myRecords(namespace: $namespace) { type handle values } }',
+			variables: { namespace }
+		}),
+		cache: 'no-store'
+	})
+	return (await response.json()) as {
+		data?: { myRecords: { type: string; handle: string; values: Record<string, unknown> }[] } | null
+		errors?: { message: string; extensions?: { code?: string } }[]
+	}
+}
+```
+
+## Sensitive records
+
+On a site whose client zone uses the secure tier (sign-in with an authenticator app), staff can mark a type
+`sensitive`. Reading a sensitive type needs a second factor proved **in the last 15 minutes** in this session. When it is
+older, `myRecords` fails with `STEP_UP_REQUIRED` before reading anything (whether or not the client has such records).
+Then:
+
+1. Ask the client for a code from their authenticator app.
+2. Send it with the client's access token:
+
+   ```graphql
+   mutation StepUp($code: String!) {
+     stepUpCustomer(code: $code)
+   }
+   ```
+
+3. Ask `myRecords` again.
+
+Ask only for the types you show (`types`) to avoid the step-up for pages without sensitive figures. If the site's tier
+is later lowered, sensitive types fail with `SENSITIVE_NEEDS_SECURE_TIER` instead.
+
+## Test customers
+
+`Customer.isTest` is `true` for a **test customer**: an account the project's staff create to try the client zone as a
+client would. Its e-mail address ends in `@test.invalid` (no mail reaches it), and it is deleted with its records 30
+days after it was created. Read it from `me` to show a "test account" strip:
+
+```graphql
+query Me {
+  me {
+    displayName
+    isTest
+  }
+}
+```
+
+`me` needs the client's access token, like `myRecords`.
