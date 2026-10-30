@@ -1849,6 +1849,21 @@ type Query {
   publicShopOrder(token: String!): ShopOrder!
 
   """
+  The shown item of a shared collection (scope collections.<key>) with this slug, as one item of publicSiteCollectionPage with every field; null when there is none
+  """
+  publicSiteCollectionItem(locale: String!, scope: String!, slug: String!): JSON
+
+  """
+  One page of a newest-first shared collection (scope collections.<key>), newest first: items and total. Each item: key, path, slug, publishDate, updatedAt, locales (where its title is stored), words (per rich-text field) and fields (fields projects them; the title and slug always come; authors and categories resolved). page is 1-based, limit at most 100. Null for any other scope or a locale the project does not have
+  """
+  publicSiteCollectionPage(fields: [String!], limit: Int! = 20, locale: String!, page: Int! = 1, scope: String!, where: SiteCollectionWhereInput): JSON
+
+  """
+  Every shown item of a shared collection with a slug (scope collections.<key>), newest first, at most 5000: a list of slug, publishDate, updatedAt, noindex and locales, for sitemaps and static params
+  """
+  publicSiteCollectionSlugs(scope: String!): JSON
+
+  """
   Template-declared content of the current project for one locale. Scope pages.<page>: the page document (sections: each single as its fields, each page collection as its shown items; seo). Scope collections.<key>: the shown items (key, path, fields). Images and files as id, url, optimizedUrl, mimetype, filename, alt. Null for a scope or locale the project does not declare
   """
   publicSiteContent(locale: String!, scope: String!): JSON
@@ -2070,6 +2085,19 @@ input ShopWithdrawalInput {
 
   """The order link token"""
   token: String
+}
+
+input SiteCollectionWhereInput {
+  """Slug of an author; an unknown slug gives an empty page"""
+  author: String
+
+  """Slug of a post category; an unknown slug gives an empty page"""
+  category: String
+
+  """
+  Only items whose label field is stored in the read locale (no fallback to the main language)
+  """
+  translatedOnly: Boolean
 }
 
 type SitemapData {
