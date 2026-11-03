@@ -1879,6 +1879,16 @@ type Query {
   """
   publicSiteTexts(locale: String!): JSON!
 
+  """
+  Whether a token really is main-craft's declaration sync asking for the current project: false for anything else, a preview link included, never an error. A site that guards its declaration asks this
+  """
+  siteDeclarationTokenValid(token: String!): Boolean!
+
+  """
+  Whether a signed preview link is valid now for the current project: false for a forged, expired or malformed token or another project's, never an error. Sites ask this before they turn on their draft mode
+  """
+  sitePreviewTokenValid(token: String!): Boolean!
+
   """Get sitemap data for SSG"""
   sitemapData: SitemapData!
 }
