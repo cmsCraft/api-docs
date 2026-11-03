@@ -882,6 +882,7 @@ enum MainMailDtoTemplate {
   shelter_adoption_request
   shelter_adoption_request_staff
   shelter_adoption_status
+  shelter_contact
   shelter_newsletter
   shelter_shop_low_stock
   shelter_shop_new_order
