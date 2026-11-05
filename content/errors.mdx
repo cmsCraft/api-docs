@@ -25,6 +25,7 @@ HTTP status.
 | `UNAUTHENTICATED` | 200 | `project-auth` is missing (`no token`), or is not a valid token or matches no project (`not matched token`). |
 | `MODULE_DISABLED` | 200 | The operation belongs to a feature the project has not switched on. |
 | `BAD_REQUEST` | 200 | Input failed validation (for example a page `limit` over 200, or an invalid contact form). |
+| `BAD_USER_INPUT` | 200 | A `scope`, `slug` or `fields` argument of a [site content](/guides/site-content#limits) query is too long. |
 | `NOT_FOUND` | 200 | The record you asked for does not exist or is not published. |
 | `CONFLICT` | 200 | The request clashes with existing data, for example an address that is already subscribed. |
 | `CONTACT_RECIPIENTS_NOT_CONFIGURED` | 200 | `sendContactRequest` on a project with no contact recipients set up. |
