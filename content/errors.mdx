@@ -35,7 +35,7 @@ HTTP status.
 | `DEV_TOKEN_READ_ONLY` | 403 | A [development token](/auth#development-tokens) sent a mutation. Development tokens are read-only: use the live token. |
 | `DEV_TOKEN_SERVER_ONLY` | 403 | A development token came with an `Origin` header other than `localhost` or `127.0.0.1` (a browser on a site). Call the API from your server. |
 | `GRAPHQL_VALIDATION_FAILED` | 400 | Unknown field or argument, [depth limit](#query-limits), or an introspection query. |
-| `BAD_USER_INPUT` | 400 | A variable is missing or has the wrong type. |
+| `BAD_USER_INPUT` | 400 | A variable is missing or has the wrong type, or a [site content](/guides/site-content#limits) argument is too long. |
 | `QUERY_TOO_COMPLEX` | 400 | The query is over the [complexity limit](#query-limits). |
 | `BAD_REQUEST` | 405 | A mutation sent with `GET` (mutations need `POST`). |
 

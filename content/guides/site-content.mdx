@@ -1,0 +1,228 @@
+---
+title: Site content
+---
+
+# Site content
+
+A site can declare the **pages** and **collections** it has: which sections a page holds, which fields each section or
+collection item has, and their defaults. Editors fill them in the admin panel, and your site reads the result with the
+queries below. For a site's settings and UI texts, see [Site settings and texts](/guides/site-settings).
+
+All four queries return JSON, so they take no selection set. Each read is limited to the project of your `project-auth`
+token. The `scope` names come from the site's declaration; the public API has no query that lists them. A project
+without a declaration answers `null`.
+
+| Scope | What it is |
+|---|---|
+| `pages.<page>` | One declared page, for example `pages.home` |
+| `collections.<key>` | One shared collection, for example `collections.posts` |
+
+`locale` is one of the project's languages (`publicProjectInfo { availableLanguages { locale } }`, see
+[Localization](/guides/localization)). Collection items are **shown** once they are published and their publish date has
+passed; the others are left out. A [development token](/auth#what-a-development-token-sees) also reads hidden and
+scheduled items, except in `publicSiteCollectionSlugs`.
+
+## Pages and shared collections
+
+```graphql
+query HomePage($locale: String!) {
+  publicSiteContent(scope: "pages.home", locale: $locale)
+}
+```
+
+A page answers `sections` and `seo`. A section is either a single, as an object of its fields, or a page collection, as
+a list of its shown items in editor order. `seo` holds the page's `title`, `description`, `image` and `noindex`, and is
+`null` when the page declares no SEO:
+
+```json
+{
+  "data": {
+    "publicSiteContent": {
+      "sections": {
+        "hero": {
+          "heading": "Fresh bread every morning",
+          "photo": {
+            "id": 101,
+            "url": "https://files.example.com/bakery/oven.jpg",
+            "optimizedUrl": "https://images.example.com/bakery/oven.jpg",
+            "mimetype": "image/jpeg",
+            "filename": "oven.jpg",
+            "alt": "Loaves coming out of the oven"
+          }
+        },
+        "values": [
+          { "key": "a1b2c3", "path": "pages.home.values/a1b2c3", "fields": { "title": "Baked on site" } }
+        ]
+      },
+      "seo": { "title": "Riverside Bakery", "description": "A neighbourhood bakery.", "noindex": false }
+    }
+  }
+}
+```
+
+The scope `collections.<key>` answers a list of the collection's shown items in editor order, each with `key`, `path` and
+`fields`. A scope or locale the project does not declare answers `null`.
+
+### Field values
+
+- A translatable field uses the first value there is: saved for `locale`, default for `locale`, saved for the project's
+  main language, default for the main language. Any other field uses its saved value, else its default.
+- A saved value that no longer fits the declaration counts as not saved. A field with nothing to serve is left out.
+- An image or file is an object with `id`, `url`, `optimizedUrl` (`null` when there is no optimized version, for
+  example for a file that is not an image), `mimetype`, `filename` and `alt`. A gallery is a list of these. A file that has been deleted is dropped.
+- A rich-text field is a [Tiptap](https://tiptap.dev) document as JSON.
+- A reference to an author is `{ slug, name, role, portrait, links }`, and a reference to a post category is
+  `{ slug, name, colorToken }`. It is `null` when the author or category no longer exists.
+
+## A page of a collection
+
+For a shared collection the site declares as newest first, such as a blog:
+
+```graphql
+query Posts($locale: String!, $page: Int!) {
+  publicSiteCollectionPage(
+    scope: "collections.posts"
+    locale: $locale
+    page: $page
+    limit: 10
+    fields: ["excerpt", "category"]
+    where: { category: "recipes", translatedOnly: true }
+  )
+}
+```
+
+```json
+{
+  "data": {
+    "publicSiteCollectionPage": {
+      "items": [
+        {
+          "key": "x7k2m9",
+          "path": "collections.posts/x7k2m9",
+          "fields": {
+            "title": "How we shape a sourdough loaf",
+            "slug": "shaping-sourdough",
+            "excerpt": "Three folds and a long rest.",
+            "category": { "slug": "recipes", "name": "Recipes", "colorToken": null }
+          },
+          "slug": "shaping-sourdough",
+          "publishDate": "2026-10-20T08:00:00.000Z",
+          "updatedAt": "2026-10-21T09:30:00.000Z",
+          "locales": ["cs", "en"],
+          "words": { "body": 640 }
+        }
+      ],
+      "total": 1
+    }
+  }
+}
+```
+
+| Argument | Meaning |
+|---|---|
+| `page` | 1-based, default `1`. A lower value reads page 1. |
+| `limit` | Default `20`. Kept between 1 and 100, without an error. |
+| `fields` | Field names to return for each item, at most 50, so a list can skip the body. The item's title (its label field) and slug always come. A name the collection does not have is ignored. Leave it out for every field. |
+| `where` | `SiteCollectionWhereInput`, see below. |
+
+Items are ordered by publish date, newest first. `slug` is there when the collection declares a slug field. `locales`
+lists the languages where the item's title is stored. `words` has the word count of each rich-text field in the read
+locale, whether `fields` asks for that field or not.
+
+The answer is `null` for an undeclared scope, a scope outside `collections.<key>`, a collection in another order, or a
+locale the project does not have. Use `publicSiteContent` for a collection in editor order.
+
+### Filters
+
+Every field of `where` is optional and they combine:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `category` | `String` | Slug of a post category. An unknown slug gives an empty page. |
+| `author` | `String` | Slug of an author. An unknown slug gives an empty page. |
+| `translatedOnly` | `Boolean` | Only items whose title is stored in `locale`, with no fallback to the main language. |
+
+An empty page is `{ "items": [], "total": 0 }`. The same goes for `category` or `author` on a collection without that
+kind of reference field. `translatedOnly` changes nothing when the title field is not translatable.
+
+## One item by slug
+
+```graphql
+query Post($slug: String!, $locale: String!) {
+  publicSiteCollectionItem(scope: "collections.posts", slug: $slug, locale: $locale)
+}
+```
+
+The answer is one item, shaped like an item of `publicSiteCollectionPage`, with every field. It is `null` when no shown
+item has that slug, and for an undeclared scope, a collection without a slug field, or a locale the project does not
+have.
+
+## Slugs for a sitemap
+
+```graphql
+query PostSlugs {
+  publicSiteCollectionSlugs(scope: "collections.posts")
+}
+```
+
+```json
+{
+  "data": {
+    "publicSiteCollectionSlugs": [
+      {
+        "slug": "shaping-sourdough",
+        "publishDate": "2026-10-20T08:00:00.000Z",
+        "updatedAt": "2026-10-21T09:30:00.000Z",
+        "noindex": false,
+        "locales": ["cs", "en"]
+      }
+    ]
+  }
+}
+```
+
+The list has every shown item with a slug, newest first, up to 5,000, for your sitemap and static params. It only ever
+holds what the public can open, also for a development token. It is `null` for an undeclared scope or a collection
+without a slug field.
+
+## Limits
+
+`scope`, `slug` and each name in `fields` take at most 255 characters, and `fields` at most 50 names. Anything longer
+fails with [`BAD_USER_INPUT`](/errors#error-reference).
+
+## Caching
+
+cms-craft sends these tags to your site's `/api/revalidate` ([Cache revalidation](/guides/revalidation#tags)):
+
+| Read | Tag |
+|---|---|
+| `pages.<page>` | `site-page-<page>` |
+| `collections.<key>` | `site-collection-<key>` |
+| One item of a shared collection | `site-item-<key>-<item key>` as well as the collection's tag, where `<item key>` is the item's `key` |
+
+They are sent when an editor saves, and when a scheduled item's publish date passes. Saving an author or post category
+sends the tags of the pages and collections that can refer to one. A change to the declaration sends the settings and
+texts tags and those of every declared page and collection.
+
+Because every item save also sends the collection's tag, a by-slug read can be tagged with it before you know the item's
+`key`:
+
+```ts
+const { publicSiteCollectionItem } = await cmsQuery<{ publicSiteCollectionItem: unknown }>(
+	'query Post($slug: String!, $locale: String!) { publicSiteCollectionItem(scope: "collections.posts", slug: $slug, locale: $locale) }',
+	{ variables: { slug, locale }, tags: ['site-collection-posts'] }
+)
+```
+
+`cmsQuery` is the helper from the [Quickstart](/getting-started).
+
+## Token checks
+
+The schema has two more queries that sites built from a cms-craft template use for their own plumbing. You do not need
+them to read content. Each takes a `token`, answers `true` or `false` for the project of your `project-auth` token, and
+answers `false` rather than an error for a bad token.
+
+- `sitePreviewTokenValid` tells whether a signed preview link is valid now. It is `false` for a forged, expired or
+  malformed token and for another project's. Template sites ask it before turning on their draft mode.
+- `siteDeclarationTokenValid` tells whether a token really is main-craft's declaration sync asking for this project. It
+  is `false` for anything else, a preview link included. A site that guards its declaration asks it.

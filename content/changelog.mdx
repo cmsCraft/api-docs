@@ -7,6 +7,19 @@ title: Changelog
 Notable changes to the public API and to these docs. Breaking changes are announced here before they reach
 production; see the [stability policy](/schema#stability-policy).
 
+## 2026-11-05
+
+- **New: site content.** `publicSiteContent(scope, locale)` returns a page or shared collection a site declares.
+  `publicSiteCollectionPage` pages through a newest-first collection, with filters in the new input
+  `SiteCollectionWhereInput`. `publicSiteCollectionItem` reads one item by slug, and `publicSiteCollectionSlugs` lists
+  the slugs for a sitemap. All are JSON. Saving sends the new revalidation tags `site-page-<page>`,
+  `site-collection-<key>` and `site-item-<key>-<item key>` ([Site content](/guides/site-content)).
+- **New: `sitePreviewTokenValid` and `siteDeclarationTokenValid`.** Token checks that sites built from a cms-craft
+  template use; you do not need them to read content ([Token checks](/guides/site-content#token-checks)).
+- **New: `MainMailDtoTemplate` value** `shelter_contact`, the contact e-mail in the shelter layout. Keep sending
+  `contact` in `sendContactRequest`: the project's contact template is always used
+  ([Contact form](/guides/mutations#contact-form)).
+
 ## 2026-10-28
 
 - **New: site settings and texts.** `publicSiteSettings` returns every setting the site declares (the editor's value,

@@ -139,6 +139,9 @@ A development token previews **publish state**: it reads what an editor has not 
   example an adopted pet).
 - Cancelled schedule slots. `PublicScheduleSlot.status` tells them apart: always `OPEN` for the live token, `OPEN` or
   `CANCELLED` for a development token.
+- [Site content](/guides/site-content) items that are hidden or scheduled, in `publicSiteContent`,
+  `publicSiteCollectionPage` and `publicSiteCollectionItem`. `publicSiteCollectionSlugs` still lists only what the
+  public sees.
 
 Everything else answers exactly as for the live token: modules the project has not switched on, private connections,
 booking and adoption availability, newsletters, and other relations of an item (such as a post's category) are not
