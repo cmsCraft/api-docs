@@ -25,6 +25,7 @@ HTTP status.
 | `UNAUTHENTICATED` | 200 | `project-auth` is missing (`no token`), or is not a valid token or matches no project (`not matched token`). |
 | `MODULE_DISABLED` | 200 | The operation belongs to a feature the project has not switched on. |
 | `BAD_REQUEST` | 200 | Input failed validation (for example a page `limit` over 200, or an invalid contact form). |
+| `BAD_USER_INPUT` | 200 | A `scope`, `slug` or `fields` argument of a [site content](/guides/site-content#limits) query is too long. |
 | `NOT_FOUND` | 200 | The record you asked for does not exist or is not published. |
 | `CONFLICT` | 200 | The request clashes with existing data, for example an address that is already subscribed. |
 | `CONTACT_RECIPIENTS_NOT_CONFIGURED` | 200 | `sendContactRequest` on a project with no contact recipients set up. |
@@ -35,7 +36,7 @@ HTTP status.
 | `DEV_TOKEN_READ_ONLY` | 403 | A [development token](/auth#development-tokens) sent a mutation. Development tokens are read-only: use the live token. |
 | `DEV_TOKEN_SERVER_ONLY` | 403 | A development token came with an `Origin` header other than `localhost` or `127.0.0.1` (a browser on a site). Call the API from your server. |
 | `GRAPHQL_VALIDATION_FAILED` | 400 | Unknown field or argument, [depth limit](#query-limits), or an introspection query. |
-| `BAD_USER_INPUT` | 400 | A variable is missing or has the wrong type, or a [site content](/guides/site-content#limits) argument is too long. |
+| `BAD_USER_INPUT` | 400 | A variable is missing or has the wrong type. |
 | `QUERY_TOO_COMPLEX` | 400 | The query is over the [complexity limit](#query-limits). |
 | `BAD_REQUEST` | 405 | A mutation sent with `GET` (mutations need `POST`). |
 

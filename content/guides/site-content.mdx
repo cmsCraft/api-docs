@@ -20,7 +20,8 @@ without a declaration answers `null`.
 `locale` is one of the project's languages (`publicProjectInfo { availableLanguages { locale } }`, see
 [Localization](/guides/localization)). Collection items are **shown** once they are published and their publish date has
 passed; the others are left out. A [development token](/auth#what-a-development-token-sees) also reads hidden and
-scheduled items, except in `publicSiteCollectionSlugs`.
+scheduled items, except in `publicSiteCollectionSlugs`. In a collection with a slug field, `publicSiteCollectionPage`
+also leaves out a hidden item that has no slug yet, for a development token too.
 
 ## Pages and shared collections
 
@@ -126,8 +127,9 @@ query Posts($locale: String!, $page: Int!) {
 | `where` | `SiteCollectionWhereInput`, see below. |
 
 Items are ordered by publish date, newest first. `slug` is there when the collection declares a slug field. `locales`
-lists the languages where the item's title is stored. `words` has the word count of each rich-text field in the read
-locale, whether `fields` asks for that field or not.
+lists the languages where the item's title is stored; when the title field is not translatable, that is every language
+of the project once a title is stored. `words` has the word count of each rich-text field as served for the read locale,
+so it may count a [fallback value](#field-values), whether `fields` asks for that field or not.
 
 The answer is `null` for an undeclared scope, a scope outside `collections.<key>`, a collection in another order, or a
 locale the project does not have. Use `publicSiteContent` for a collection in editor order.
@@ -188,7 +190,9 @@ without a slug field.
 ## Limits
 
 `scope`, `slug` and each name in `fields` take at most 255 characters, and `fields` at most 50 names. Anything longer
-fails with [`BAD_USER_INPUT`](/errors#error-reference).
+fails with [`BAD_USER_INPUT`](/errors#error-reference). `where.category` and `where.author` also take at most 255
+characters; a longer one fails with [`BAD_REQUEST`](/errors#error-reference). Both answer HTTP 200, with the error in
+the body.
 
 ## Caching
 
