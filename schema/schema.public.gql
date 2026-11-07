@@ -1354,6 +1354,12 @@ type ProductType {
   vatRate: Int
 }
 
+"""Set on a public demo project only: what its demo banner shows."""
+type ProjectDemoInfo {
+  """When the demo next resets to its seed (every 3 hours, UTC)."""
+  nextResetAt: DateTime!
+}
+
 type ProjectDomainsType {
   createdAt: DateTime!
   deletedAt: DateTime
@@ -1705,6 +1711,9 @@ input PublicProductsWhereInput {
 
 type PublicProjectDto {
   availableLanguages: [LanguageType!]!
+
+  """Null for a normal project; set on a public demo."""
+  demo: ProjectDemoInfo
   domainUrls: [ProjectDomainsType!]!
   files: [File!]!
   mainLanguage: LanguageType!
