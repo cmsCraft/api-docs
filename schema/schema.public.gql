@@ -862,6 +862,7 @@ enum MainMailDtoTemplate {
   creator_shop_ready_for_pickup
   creator_shop_withdrawal_received
   creator_shop_withdrawal_request
+  customer_email_changed
   customer_email_code
   customer_inactivity_warning
   customer_invite
@@ -1013,6 +1014,71 @@ type Mutation {
   Prove the address with its code; it becomes the verified e-mail. INVALID_EMAIL_CODE (wrong, expired, or 5 wrong guesses), EMAIL_IN_USE (another Customer of this site has it). 10 wrong guesses at one address in 24 h lock it for that Customer, 100 from all Customers together lock it for everyone, until they age out
   """
   verifyCustomerEmail(input: VerifyCustomerEmailInput!): Customer!
+}
+
+"""
+One of the signed-in Customer's bookings: what, when, its state and price. No contact data or notes
+"""
+type MyBooking {
+  createdAt: DateTime!
+
+  """ISO 4217 code"""
+  currency: String!
+  endDate: DateTime!
+  isPaid: Boolean!
+
+  """The booked product's name, per language"""
+  productName: [LocalizedText!]!
+  quantity: Int!
+  referenceCode: String
+  startDate: DateTime!
+  status: BookingStatus!
+
+  """Decimal as a string (e.g. "1200.00"): parse it, never through a float"""
+  totalPrice: String!
+}
+
+type MyBookingPage {
+  items: [MyBooking!]!
+
+  """All of the Customer's bookings on this site"""
+  total: Int!
+}
+
+"""
+One of the signed-in Customer's shop orders, for an order history. No name, e-mail, phone, address or order link
+"""
+type MyOrder {
+  createdAt: DateTime!
+
+  """ISO 4217 code"""
+  currency: String!
+  items: [MyOrderItem!]!
+  orderNumber: String!
+
+  """When the payment came in; null = not paid"""
+  paidAt: DateTime
+
+  """Null when the order never recorded one"""
+  paymentMethod: PaymentMethod
+  status: OrderStatus!
+
+  """Total in minor units; null when the order never recorded one"""
+  totalMinor: Int
+}
+
+"""One line of an order, as it was bought"""
+type MyOrderItem {
+  name: String!
+  optionLabel: String
+  quantity: Int!
+}
+
+type MyOrderPage {
+  items: [MyOrder!]!
+
+  """All of the Customer's orders on this site"""
+  total: Int!
 }
 
 type NewsletterType {
@@ -1287,6 +1353,12 @@ type ProductType {
   translations: [ProductTranslation!]
   updatedAt: DateTime
   vatRate: Int
+}
+
+"""Set on a public demo project only: what its demo banner shows."""
+type ProjectDemoInfo {
+  """When the demo next resets to its seed (every 3 hours, UTC)."""
+  nextResetAt: DateTime!
 }
 
 type ProjectDomainsType {
@@ -1640,6 +1712,9 @@ input PublicProductsWhereInput {
 
 type PublicProjectDto {
   availableLanguages: [LanguageType!]!
+
+  """Null for a normal project; set on a public demo."""
+  demo: ProjectDemoInfo
   domainUrls: [ProjectDomainsType!]!
   files: [File!]!
   mainLanguage: LanguageType!
@@ -1769,6 +1844,24 @@ type Query {
 
   """The signed-in Customer"""
   me: Customer!
+
+  """
+  The signed-in Customer's bookings on this site, newest first: product, dates, state and price. No contact data. Never cache the answer (fetch with no-store)
+  """
+  myBookings(
+    """1..50"""
+    limit: Int! = 20
+    offset: Int! = 0
+  ): MyBookingPage!
+
+  """
+  The signed-in Customer's shop orders on this site, newest first: number, date, state, payment, total and items. No delivery or contact data (that stays on the order page). Never cache the answer (fetch with no-store)
+  """
+  myOrders(
+    """1..50"""
+    limit: Int! = 20
+    offset: Int! = 0
+  ): MyOrderPage!
 
   """
   The signed-in Customer's records of one namespace (optionally some types), plus shared ones, in display order. A sensitive type needs a second factor proved in the last 15 minutes: STEP_UP_REQUIRED, then stepUpCustomer and ask again. Never cache the answer (fetch with no-store, never inside a shared cache)
