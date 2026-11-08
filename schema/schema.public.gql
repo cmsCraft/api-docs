@@ -856,6 +856,7 @@ enum MainMailDtoTemplate {
   creator_shop_new_order
   creator_shop_order_cancelled
   creator_shop_order_confirmation
+  creator_shop_order_refunded
   creator_shop_order_shipped
   creator_shop_paid_after_cancel
   creator_shop_payment_mismatch
@@ -890,6 +891,7 @@ enum MainMailDtoTemplate {
   shelter_shop_new_order
   shelter_shop_order_cancelled
   shelter_shop_order_confirmation
+  shelter_shop_order_refunded
   shelter_shop_order_shipped
   shelter_shop_paid_after_cancel
   shelter_shop_payment_mismatch
@@ -901,6 +903,7 @@ enum MainMailDtoTemplate {
   shop_new_order
   shop_order_cancelled
   shop_order_confirmation
+  shop_order_refunded
   shop_order_shipped
   shop_paid_after_cancel
   shop_payment_mismatch
