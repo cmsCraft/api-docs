@@ -727,6 +727,7 @@ enum EmbeddedOwnerType {
 """CMS entity types that support cache revalidation"""
 enum EntityType {
   AUTHOR
+  BILLING_ACCOUNT
   CATEGORY
   CONTENT
   DONATION_CONFIG
