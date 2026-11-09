@@ -742,6 +742,7 @@ enum EntityType {
   SITE
   SITE_SETTING
   SLOT
+  SUBSCRIPTION
   TAG
   USER
 }
