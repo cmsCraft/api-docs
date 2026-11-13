@@ -835,6 +835,10 @@ input MailInputType {
   """
   subject: String
   template: MainMailDtoTemplate!
+
+  """
+  Template fields. For `sendContactRequest`: `name`, `email`, `message` (required), optional `subject`, `phone`, `details` (flat string map: at most 20 keys, key ≤ 40 chars, value ≤ 500), `source` (page path or form kind, e.g. `quote`) and `locale` (any project language, e.g. `uk`; defaults to `mailLanguage`). The request is stored for the project (kept 365 days) before it is mailed. Unknown keys are dropped; detail keys are kept as sent (not trimmed).
+  """
   templateData: JSON!
 
   """
