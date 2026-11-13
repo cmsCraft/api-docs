@@ -847,6 +847,7 @@ enum MainMailDtoMailLanguage {
   cs
   en
   ru
+  uk
 }
 
 enum MainMailDtoTemplate {
