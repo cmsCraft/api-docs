@@ -7,6 +7,13 @@ title: Changelog
 Notable changes to the public API and to these docs. Breaking changes are announced here before they reach
 production; see the [stability policy](/schema#stability-policy).
 
+## 2026-11-13
+
+- **New: `myRegistrations(limit, offset)`.** The signed-in client's sign-ups for time slots on this site, newest first:
+  activity title, slot times, state and waitlist place, with `total` for paging (`limit` 1 to 50). It needs the
+  client's access token and the client zone module, and must never be cached. New types: `MyRegistration` and
+  `MyRegistrationPage` ([Slot registrations](/guides/client-zone-records#slot-registrations)).
+
 ## 2026-11-05
 
 - **New: site content.** `publicSiteContent(scope, locale)` returns a page or shared collection a site declares.
