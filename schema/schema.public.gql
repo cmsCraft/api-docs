@@ -1086,6 +1086,28 @@ type MyOrderPage {
   total: Int!
 }
 
+"""
+One of the signed-in Customer's sign-ups for a time slot: activity, when, state. No contact data or cancel link
+"""
+type MyRegistration {
+  """The activity's title, per language"""
+  activity: [LocalizedText!]!
+  createdAt: DateTime!
+  endAt: DateTime!
+  startAt: DateTime!
+  status: RegistrationStatus!
+
+  """Place on the waitlist; null unless WAITLISTED"""
+  waitlistPosition: Int
+}
+
+type MyRegistrationPage {
+  items: [MyRegistration!]!
+
+  """All of the Customer's registrations on this site"""
+  total: Int!
+}
+
 type NewsletterType {
   createdAt: DateTime!
   defaultFromEmail: String
@@ -1872,6 +1894,15 @@ type Query {
   The signed-in Customer's records of one namespace (optionally some types), plus shared ones, in display order. A sensitive type needs a second factor proved in the last 15 minutes: STEP_UP_REQUIRED, then stepUpCustomer and ask again. Never cache the answer (fetch with no-store, never inside a shared cache)
   """
   myRecords(namespace: String!, types: [String!]): [CustomerRecord!]!
+
+  """
+  The signed-in Customer's sign-ups for time slots on this site, newest first: activity, slot times, state. No contact data. Never cache the answer (fetch with no-store)
+  """
+  myRegistrations(
+    """1..50"""
+    limit: Int! = 20
+    offset: Int! = 0
+  ): MyRegistrationPage!
 
   """The signed-in Customer's devices"""
   mySessions: [CustomerSession!]!

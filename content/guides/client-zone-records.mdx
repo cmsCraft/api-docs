@@ -204,6 +204,77 @@ Then:
 Ask only for the types you show (`types`) to avoid the step-up for pages without sensitive figures. If the site's tier
 is later lowered, sensitive types fail with `SENSITIVE_NEEDS_SECURE_TIER` instead.
 
+## Slot registrations
+
+`myRegistrations` lists the signed-in client's sign-ups for time slots on this site (see
+[Event registration](/guides/mutations#event-registration)), newest first. Each item has the activity's title per
+language, the slot's start and end, when the client signed up, and the registration's state. It holds no contact data
+and no cancel link.
+
+It needs the client zone module and the client's access token, like `myRecords` ([Who may call
+them](#who-may-call-them)); without the token it fails with `CUSTOMER_UNAUTHENTICATED`. It does not need the scheduling
+module: if the site drops it later, the client still sees their past sign-ups.
+
+```graphql
+query MyRegistrations($limit: Int!, $offset: Int!) {
+  myRegistrations(limit: $limit, offset: $offset) {
+    total
+    items {
+      activity { languageCode value }
+      startAt
+      endAt
+      createdAt
+      status
+      waitlistPosition
+    }
+  }
+}
+```
+
+```json
+{
+  "data": {
+    "myRegistrations": {
+      "total": 3,
+      "items": [
+        {
+          "activity": [
+            { "languageCode": "en", "value": "Dog walk" },
+            { "languageCode": "cs", "value": "Venčení psů" }
+          ],
+          "startAt": "2026-12-05T09:00:00.000Z",
+          "endAt": "2026-12-05T11:00:00.000Z",
+          "createdAt": "2026-11-10T18:24:00.000Z",
+          "status": "WAITLISTED",
+          "waitlistPosition": 2
+        },
+        {
+          "activity": [
+            { "languageCode": "en", "value": "Kennel cleaning" },
+            { "languageCode": "cs", "value": "Úklid kotců" }
+          ],
+          "startAt": "2026-11-22T08:00:00.000Z",
+          "endAt": "2026-11-22T12:00:00.000Z",
+          "createdAt": "2026-11-02T09:15:00.000Z",
+          "status": "CONFIRMED",
+          "waitlistPosition": null
+        }
+      ]
+    }
+  }
+}
+```
+
+- Paging: `limit` is 1 to 50 (default 20) and `offset` starts at 0. A `limit` outside that range fails. `total` counts
+  all of the client's registrations on this site, so `offset + items.length < total` means there is another page.
+- `status`: `PENDING` (waiting for the organiser), `CONFIRMED` (the client has a place), `WAITLISTED` (the slot is
+  full and the client is in the queue), `REJECTED` (the organiser declined) or `CANCELLED`.
+- `waitlistPosition` is the client's place in the queue (1 is next) when `status` is `WAITLISTED`, and `null`
+  otherwise.
+
+**Never cache the answer**, as with `myRecords`: the API sends `Cache-Control: private, no-store`, so fetch it with
+`cache: 'no-store'` and never put it in a cache shared between visitors.
+
 ## Test customers
 
 `Customer.isTest` is `true` for a **test customer**: an account the project's staff create to try the client zone as a
