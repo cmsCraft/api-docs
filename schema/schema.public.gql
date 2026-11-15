@@ -889,6 +889,8 @@ enum MainMailDtoTemplate {
   schedule_registration_reminder
   schedule_registration_staff
   schedule_registration_update
+  sender_broken
+  sender_confirm
   shelter_adoption_request
   shelter_adoption_request_staff
   shelter_adoption_status
