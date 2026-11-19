@@ -29,7 +29,8 @@ before forwarding a submission.
 
 ## Contact form
 
-The message is emailed to the project's contact recipients (set up in the admin panel).
+The request is stored for the project, then emailed to the project's contact recipients (set up in the admin
+panel). Stored requests are kept 365 days.
 
 ```graphql
 mutation Contact($mailInput: MailInputType!) {
@@ -43,19 +44,34 @@ mutation Contact($mailInput: MailInputType!) {
     "mailLanguage": "en",
     "template": "contact",
     "subject": "Quote request",
-    "templateData": { "name": "Jane Doe", "email": "jane@example.com", "message": "Hello!" }
+    "templateData": {
+      "name": "Jane Doe",
+      "email": "jane@example.com",
+      "phone": "+420 777 123 456",
+      "message": "Hello!",
+      "details": { "Area": "120 m²", "Deadline": "March" },
+      "source": "quote",
+      "locale": "uk"
+    }
   }
 }
 ```
 
-- `templateData` must have `name` (up to 200 characters), `email` (a valid address) and `message` (up to 5,000
-  characters). Other keys are ignored. Invalid data fails with `BAD_REQUEST`, for example
-  `Invalid templateData — email: Invalid email address`.
+- `templateData` must have `name` (up to 200 characters), `message` (up to 5,000 characters) and one of `email` or
+  `phone`. An `email` must be a valid address. Without an `email`, the `phone` must be a number with 6 to 20 digits
+  (spaces, `+`, `-`, `.`, `/` and brackets are allowed); an empty `email` (`""` or `null`) counts as none. Invalid data
+  fails with `BAD_REQUEST`, for example `Invalid templateData — email: Invalid email address`.
+- Optional keys: `subject`, `details`, `source` and `locale`. `details` holds the form's extra fields as a flat map of
+  strings, keyed by the label the site shows: at most 20 keys, each key up to 40 characters, each value up to 500.
+  Keys are kept as sent (not trimmed); a bad `details` map fails with `BAD_REQUEST`. `source` names the page path or
+  form kind (for example `quote`). `locale` is the visitor's language, any project language (for example `uk` or
+  `pt-BR`); without it, `mailLanguage` is used. Other keys are dropped.
 - `template` is required by the schema; send `contact`. The project's contact template is always used.
-- `mailLanguage` is `cs`, `en` or `ru`. `subject` is optional: the email's subject is `<project name> — <subject>`
-  (up to 120 characters of yours).
+- `mailLanguage` is `cs`, `en`, `ru` or `uk`. `subject` is optional: the email's subject is
+  `<project name> — <subject>` (up to 120 characters of yours).
 - The deprecated `to` field is ignored: mail goes only to the project's contact recipients. A project without any
   fails with `CONTACT_RECIPIENTS_NOT_CONFIGURED`.
+- A public demo project stores and mails nothing, and still returns `true`.
 - Returns `true`.
 
 ## Newsletter
