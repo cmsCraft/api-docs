@@ -13,6 +13,16 @@ production; see the [stability policy](/schema#stability-policy).
   activity title, slot times, state and waitlist place, with `total` for paging (`limit` 1 to 50). It needs the
   client's access token and the client zone module, and must never be cached. New types: `MyRegistration` and
   `MyRegistrationPage` ([Slot registrations](/guides/client-zone-records#slot-registrations)).
+- **Changed: `sendContactRequest`.** `templateData` now needs one of `email` or `phone` (without an `email`, the
+  `phone` needs 6 to 20 digits) and takes the optional `details` (the form's extra fields as a flat string map),
+  `source` (page path or form kind) and `locale` (any project language). Requests are stored for the project and kept
+  365 days; a public demo project stores and mails nothing ([Contact form](/guides/mutations#contact-form)).
+- **New: `MainMailDtoMailLanguage` value** `uk`.
+- **New: `MainMailDtoTemplate` values** `sender_broken` and `sender_confirm`, internal e-mails that confirm a
+  project's own sender address or report it broken. Keep sending `contact` in `sendContactRequest`: the project's
+  contact template is always used ([Contact form](/guides/mutations#contact-form)).
+- **New: `EntityType` value** `PERSON_DATA` (audit entries for a person's data looked up or exported) and
+  **`ProjectTemplate` value** `SERVICES` (the services site template).
 
 ## 2026-11-05
 
