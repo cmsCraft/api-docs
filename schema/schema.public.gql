@@ -734,6 +734,7 @@ enum EntityType {
   FILE
   NEWSLETTER
   PAGE_MANIFEST
+  PERSON_DATA
   PET
   PRODUCT
   PROJECT
@@ -835,6 +836,10 @@ input MailInputType {
   """
   subject: String
   template: MainMailDtoTemplate!
+
+  """
+  Template fields. For `sendContactRequest`: `name`, `message` and one of `email` or `phone` (required; without an `email` the `phone` needs 6 to 20 digits), optional `subject`, `details` (flat string map: at most 20 keys, key ≤ 40 chars, value ≤ 500), `source` (page path or form kind, e.g. `quote`) and `locale` (any project language, e.g. `uk`; defaults to `mailLanguage`). The request is stored for the project (kept 365 days) before it is mailed; a public demo project stores and mails nothing. Unknown keys are dropped; detail keys are kept as sent (not trimmed).
+  """
   templateData: JSON!
 
   """
@@ -847,6 +852,7 @@ enum MainMailDtoMailLanguage {
   cs
   en
   ru
+  uk
 }
 
 enum MainMailDtoTemplate {
@@ -883,6 +889,8 @@ enum MainMailDtoTemplate {
   schedule_registration_reminder
   schedule_registration_staff
   schedule_registration_update
+  sender_broken
+  sender_confirm
   shelter_adoption_request
   shelter_adoption_request_staff
   shelter_adoption_status
@@ -1438,6 +1446,7 @@ enum ProjectTemplate {
   DEFAULT
   ECOMMERCE
   MINIMAL
+  SERVICES
   SHELTER
 }
 
