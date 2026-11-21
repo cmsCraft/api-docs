@@ -1694,12 +1694,26 @@ input PublicPetFilterInput {
   goodWithDogs: Boolean
   goodWithKids: Boolean
   limit: Int
+
+  """
+  Locale whose pet name the NAME sort reads (e.g. "cs"). Ignored by other sorts.
+  """
+  locale: String
   maxAge: Int
   minAge: Int
   offset: Int
   search: String
   size: Size
+
+  """Order of the list. Defaults to NEWEST."""
+  sort: PublicPetSort
   species: Species
+}
+
+enum PublicPetSort {
+  NAME
+  NEWEST
+  WAITING
 }
 
 type PublicProductsPage {
