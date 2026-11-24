@@ -1775,7 +1775,9 @@ type PublicProjectBrand {
   """
   accent: String
 
-  """Curated font pair key; reserved, always null for now"""
+  """
+  Curated font pair key (`@cmscraft/brand` FONT_PAIRS); null = the look's own fonts. Treat an unknown key as null
+  """
   fontPair: String
 
   """32 × 32 PNG icon (absolute URL)"""
