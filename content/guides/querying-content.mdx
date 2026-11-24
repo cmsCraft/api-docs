@@ -123,9 +123,39 @@ query Sitemap {
 }
 ```
 
+## Pets
+
+Pet queries need the project's pets module. `getPublicPets` takes an optional `filterInput: PublicPetFilterInput`:
+filters (`species`, `size`, `gender`, `minAge`, `maxAge`, `breed`, `goodWithKids`, `goodWithCats`, `goodWithDogs`,
+`categories`, `search`), paging (`limit`, default 20, and `offset`) and the order:
+
+| `sort` | Order |
+|---|---|
+| `NEWEST` (default) | Newest record first |
+| `WAITING` | Longest waiting first: earliest `arrivalDate` first, pets without one last |
+| `NAME` | A to Z by the pet's name in `locale`, else in `en`, else in any translation; pets without a name last |
+
+`locale` is only read by `NAME`; other sorts ignore it. Pass the language's locale exactly as the project has it (for
+example `"cs"`); omitted, it is `en`. Names in `cs` and `en` follow that language's alphabet (in Czech `Č` comes after
+`C` and `Ch` after `H`); other languages use a neutral Unicode order. Every order ends on newest first, so `offset` pages never
+overlap or skip a pet.
+
+```graphql
+query DogsByName($locale: String!) {
+  getPublicPets(filterInput: { species: DOG, sort: NAME, locale: $locale, limit: 12, offset: 0 }) {
+    id
+    slug
+    arrivalDate
+    translations { language { locale } name }
+  }
+}
+```
+
+One pet by slug: `getPublicPetBySlug(slug: "…")`.
+
 ## Other data
 
-The schema also has queries for pets (`getPublicPets`, `getPublicPetBySlug`…), schedules (`getPublicSchedule`),
+The schema also has queries for schedules (`getPublicSchedule`),
 donations (`getPublicDonationInfo`), newsletters (`getPublicNewsletters`) and connected streaming channels
 (`publicConnections`, `publicConnectionItems`…). Each needs the matching module on the project. See the
 [API Reference](/reference).

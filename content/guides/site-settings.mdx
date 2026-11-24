@@ -90,3 +90,69 @@ const { publicSiteSettings } = await cmsQuery<{ publicSiteSettings: Record<strin
 ```
 
 `cmsQuery` is the helper from the [Quickstart](/getting-started).
+
+## Brand
+
+The project owner can set a logo, a site icon and an accent colour in the admin panel (Settings → Brand). Your site
+reads them from `publicProjectInfo.brand`:
+
+```graphql
+query Brand {
+  publicProjectInfo {
+    brand {
+      logo { url width height }
+      logoDark { url width height }
+      icon32
+      icon180
+      icon192
+      icon512
+      accent
+    }
+  }
+}
+```
+
+`brand` is always there. Each field in it is null until the owner sets it (`fontPair` is reserved and always null),
+and a brand with every field null means "no brand": keep your site's own look.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `logo` | `BrandImage` | The site logo: PNG (keeps the upload's transparency), trimmed, at most 1200 px wide |
+| `logoDark` | `BrandImage` | A logo for dark backgrounds. Null: show `logo` on a light plate instead |
+| `icon32` | `String` | 32 × 32 PNG icon (favicon), absolute URL |
+| `icon180` | `String` | 180 × 180 Apple touch icon, flattened on white, absolute URL |
+| `icon192`, `icon512` | `String` | 192 × 192 and 512 × 512 PNG icons (for a web app manifest), absolute URLs |
+| `accent` | `String` | The accent colour as lowercase `#rrggbb` |
+| `fontPair` | `String` | Reserved, always null for now |
+
+A `BrandImage` is `url` (absolute URL on the files host) plus the stored `width` and `height` in pixels. Pass them to
+your `<img>` (or `next/image`) so the logo takes its space before it loads and the page does not shift. The four icons
+are all set or all null: they come from one square upload.
+
+`accent` is the owner's pick, not a tested colour. Do not paint text or buttons with it as is: derive the shades you
+need from it against your own background, and check their contrast.
+
+```json
+{
+  "data": {
+    "publicProjectInfo": {
+      "brand": {
+        "logo": { "url": "https://files.example.com/projects/5/brand/3f1c….png", "width": 1200, "height": 340 },
+        "logoDark": null,
+        "icon32": "https://files.example.com/projects/5/brand/9a7e….png",
+        "icon180": "https://files.example.com/projects/5/brand/b24d….png",
+        "icon192": "https://files.example.com/projects/5/brand/0c55….png",
+        "icon512": "https://files.example.com/projects/5/brand/e810….png",
+        "accent": "#2f7d5b"
+      }
+    }
+  }
+}
+```
+
+Each new image gets a new URL, so you can cache the files for as long as you like. When the owner changes the logo,
+the dark logo, the icon or the accent, cms-craft sends the tags `project` and `project-<id>` to your site
+([Cache revalidation](/guides/revalidation#tags)); tag your `publicProjectInfo` fetch with them.
+
+The brand also holds the project's mail identity (mail logo, sender name, mail footer). cms-craft uses it in the
+e-mails it sends for the project; it is not in the public API.
