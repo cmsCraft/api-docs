@@ -149,6 +149,15 @@ enum BookingStatus {
   Pending
 }
 
+"""An uploaded brand image with its stored size (no layout shift)"""
+type BrandImage {
+  height: Int!
+
+  """Absolute URL on the files host"""
+  url: String!
+  width: Int!
+}
+
 type Category {
   categoryFiles: [CategoryFile!]
   children: [Category!]
@@ -1694,12 +1703,26 @@ input PublicPetFilterInput {
   goodWithDogs: Boolean
   goodWithKids: Boolean
   limit: Int
+
+  """
+  Locale whose pet name the NAME sort reads (e.g. "cs"). Ignored by other sorts.
+  """
+  locale: String
   maxAge: Int
   minAge: Int
   offset: Int
   search: String
   size: Size
+
+  """Order of the list. Defaults to NEWEST."""
+  sort: PublicPetSort
   species: Species
+}
+
+enum PublicPetSort {
+  NAME
+  NEWEST
+  WAITING
 }
 
 type PublicProductsPage {
@@ -1746,8 +1769,41 @@ input PublicProductsWhereInput {
   slugs: [String!]
 }
 
+type PublicProjectBrand {
+  """
+  #rrggbb. Derive readable tokens from it against the look's background; never use it raw
+  """
+  accent: String
+
+  """Curated font pair key; reserved, always null for now"""
+  fontPair: String
+
+  """32 × 32 PNG icon (absolute URL)"""
+  icon32: String
+
+  """Apple touch icon (absolute URL), flattened on white"""
+  icon180: String
+
+  """192 × 192 PNG icon (absolute URL)"""
+  icon192: String
+
+  """512 × 512 PNG icon (absolute URL)"""
+  icon512: String
+
+  """Site logo, PNG with transparency"""
+  logo: BrandImage
+
+  """Logo for dark backgrounds; null = show `logo` on a light plate"""
+  logoDark: BrandImage
+}
+
 type PublicProjectDto {
   availableLanguages: [LanguageType!]!
+
+  """
+  Logo, icons and accent the owner set (Settings → Brand); every field null = the template look
+  """
+  brand: PublicProjectBrand!
 
   """Null for a normal project; set on a public demo."""
   demo: ProjectDemoInfo

@@ -7,6 +7,15 @@ title: Changelog
 Notable changes to the public API and to these docs. Breaking changes are announced here before they reach
 production; see the [stability policy](/schema#stability-policy).
 
+## 2026-11-24
+
+- **New: `publicProjectInfo.brand`.** The logo, dark logo, site icons (32, 180, 192 and 512 px) and accent colour the
+  project owner set in Settings → Brand. Logos come with their stored width and height. Each field is null until the
+  owner sets it. New types: `PublicProjectBrand` and `BrandImage` ([Brand](/guides/site-settings#brand)).
+- **New: `sort` and `locale` in `PublicPetFilterInput`.** `getPublicPets` can list pets newest first (`NEWEST`, the
+  default), longest waiting first (`WAITING`) or by name (`NAME`, reading the name in `locale`). New enum:
+  `PublicPetSort` ([Pets](/guides/querying-content#pets)).
+
 ## 2026-11-13
 
 - **New: `myRegistrations(limit, offset)`.** The signed-in client's sign-ups for time slots on this site, newest first:
