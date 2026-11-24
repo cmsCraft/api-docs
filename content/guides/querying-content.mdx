@@ -136,9 +136,11 @@ filters (`species`, `size`, `gender`, `minAge`, `maxAge`, `breed`, `goodWithKids
 | `NAME` | A to Z by the pet's name in `locale`, else in `en`, else in any translation; pets without a name last |
 
 `locale` is only read by `NAME`; other sorts ignore it. Pass the language's locale exactly as the project has it (for
-example `"cs"`); omitted, it is `en`. Names in `cs` and `en` follow that language's alphabet (in Czech `Č` comes after
-`C` and `Ch` after `H`); other languages use a neutral Unicode order. Every order ends on newest first, so `offset` pages never
-overlap or skip a pet.
+example `"cs"`); omitted, it is `en`. It must look like a locale (two or three letters, optionally `-` or `_` and 2 to 8
+letters or digits, such as `cs` or `en-GB`); anything else fails with [`BAD_REQUEST`](/errors#error-reference). Names in `cs` and
+`en` follow that language's alphabet (in Czech `Č` comes after `C` and `Ch` after `H`); other languages use the ICU root
+collation (`und-x-icu`). Every order ends on newest first, so `offset` pages never overlap or skip a pet while the list
+does not change.
 
 ```graphql
 query DogsByName($locale: String!) {
@@ -155,7 +157,6 @@ One pet by slug: `getPublicPetBySlug(slug: "…")`.
 
 ## Other data
 
-The schema also has queries for schedules (`getPublicSchedule`),
-donations (`getPublicDonationInfo`), newsletters (`getPublicNewsletters`) and connected streaming channels
-(`publicConnections`, `publicConnectionItems`…). Each needs the matching module on the project. See the
-[API Reference](/reference).
+The schema also has queries for schedules (`getPublicSchedule`), donations (`getPublicDonationInfo`), newsletters
+(`getPublicNewsletters`) and connected streaming channels (`publicConnections`, `publicConnectionItems`…). Each needs the
+matching module on the project. See the [API Reference](/reference).
