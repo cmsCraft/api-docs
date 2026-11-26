@@ -133,9 +133,11 @@ are all set or all null: they come from one square upload.
 `accent` is the owner's pick, not a tested colour. Do not paint text or buttons with it as is: derive the shades you
 need from it against your own background, and check their contrast.
 
-`fontPair` is one of `sport-condensed`, `clean`, `warm`, `classic`, `playful` or `streamer`: the curated list
-(`FONT_PAIRS`) in the `@cmscraft/brand` package, which also has the font files and `fontPairCss(key)` to switch a site
-to the pair. Treat a key you do not know as null: the list can grow, and a removed pair reads as no pair.
+`fontPair` is currently one of `sport-condensed`, `clean`, `warm`, `classic`, `playful` or `streamer`: the curated
+list (`FONT_PAIRS`) in the `@cmscraft/brand` package. The package also ships the font files and `fontPairCss(key)`,
+which returns the CSS that switches a site to the pair. That CSS loads the files from `/fonts/…`, so copy
+`node_modules/@cmscraft/brand/fonts/*` into your site's `public/fonts/`. Treat a key you do not know as null: the list
+can grow, and a removed pair reads as no pair.
 
 ```json
 {
