@@ -9,6 +9,9 @@ production; see the [stability policy](/schema#stability-policy).
 
 ## 2026-11-24
 
+- **Changed: `PublicProjectBrand.fontPair`.** No longer reserved: it holds the key of the curated font pair the
+  owner picked in Settings → Brand, or null for the look's own fonts. Treat an unknown key as null
+  ([Brand](/guides/site-settings#brand)).
 - **New: `publicProjectInfo.brand`.** The logo, dark logo, site icons (32, 180, 192 and 512 px) and accent colour the
   project owner set in Settings → Brand. Logos come with their stored width and height. Each field is null until the
   owner sets it. New types: `PublicProjectBrand` and `BrandImage` ([Brand](/guides/site-settings#brand)).

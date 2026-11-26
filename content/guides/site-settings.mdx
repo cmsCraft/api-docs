@@ -93,8 +93,8 @@ const { publicSiteSettings } = await cmsQuery<{ publicSiteSettings: Record<strin
 
 ## Brand
 
-The project owner can set a logo, a site icon and an accent colour in the admin panel (Settings → Brand). Your site
-reads them from `publicProjectInfo.brand`:
+The project owner can set a logo, a site icon, an accent colour and a font pair in the admin panel (Settings → Brand).
+Your site reads them from `publicProjectInfo.brand`:
 
 ```graphql
 query Brand {
@@ -107,13 +107,14 @@ query Brand {
       icon192
       icon512
       accent
+      fontPair
     }
   }
 }
 ```
 
-`brand` is always there. Each field in it is null until the owner sets it (`fontPair` is reserved and always null),
-and a brand with every field null means "no brand": keep your site's own look.
+`brand` is always there. Each field in it is null until the owner sets it, and a brand with every field null means
+"no brand": keep your site's own look.
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -123,7 +124,7 @@ and a brand with every field null means "no brand": keep your site's own look.
 | `icon180` | `String` | 180 × 180 Apple touch icon, flattened on white, absolute URL |
 | `icon192`, `icon512` | `String` | 192 × 192 and 512 × 512 PNG icons (for a web app manifest), absolute URLs |
 | `accent` | `String` | The accent colour as lowercase `#rrggbb` |
-| `fontPair` | `String` | Reserved, always null for now |
+| `fontPair` | `String` | The key of a curated display + body font pair. Null: keep your look's own fonts |
 
 A `BrandImage` is `url` (absolute URL on the files host) plus the stored `width` and `height` in pixels. Pass them to
 your `<img>` (or `next/image`) so the logo takes its space before it loads and the page does not shift. The four icons
@@ -131,6 +132,12 @@ are all set or all null: they come from one square upload.
 
 `accent` is the owner's pick, not a tested colour. Do not paint text or buttons with it as is: derive the shades you
 need from it against your own background, and check their contrast.
+
+`fontPair` is currently one of `sport-condensed`, `clean`, `warm`, `classic`, `playful` or `streamer`: the curated
+list (`FONT_PAIRS`) in the `@cmscraft/brand` package. The package also ships the font files and `fontPairCss(key)`,
+which returns the CSS that switches a site to the pair. That CSS loads the files from `/fonts/…`, so copy
+`node_modules/@cmscraft/brand/fonts/*` into your site's `public/fonts/`. Treat a key you do not know as null: the list
+can grow, and a removed pair reads as no pair.
 
 ```json
 {
@@ -143,7 +150,8 @@ need from it against your own background, and check their contrast.
         "icon180": "https://files.example.com/projects/5/brand/b24d….png",
         "icon192": "https://files.example.com/projects/5/brand/0c55….png",
         "icon512": "https://files.example.com/projects/5/brand/e810….png",
-        "accent": "#2f7d5b"
+        "accent": "#2f7d5b",
+        "fontPair": "warm"
       }
     }
   }
@@ -151,7 +159,7 @@ need from it against your own background, and check their contrast.
 ```
 
 Each new image gets a new URL, so you can cache the files for as long as you like. When the owner changes the logo,
-the dark logo, the icon or the accent, cms-craft sends the tags `project` and `project-<id>` to your site
+the dark logo, the icon, the accent or the font pair, cms-craft sends the tags `project` and `project-<id>` to your site
 ([Cache revalidation](/guides/revalidation#tags)); tag your `publicProjectInfo` fetch with them.
 
 The brand also holds the project's mail identity (mail logo, sender name, mail footer, company line). cms-craft uses
